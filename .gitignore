@@ -12,9 +12,12 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
 
 # next.js
 /.next/
+/.next-build-check/
 /out/
 
 # production
@@ -32,6 +35,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+
+# Supabase CLI local project-link cache
+/supabase/.temp/
 
 # vercel
 .vercel

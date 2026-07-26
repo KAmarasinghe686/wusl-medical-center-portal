@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WUSL Medical Center Portal
 
-## Getting Started
+A role-based medical-record portal for students, doctors, faculty reviewers,
+workers, and administrators. The application uses Next.js 16 and Supabase.
 
-First, run the development server:
+## Local setup
+
+1. Copy the required Supabase values into `.env.local`:
+
+   ```text
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   SUPABASE_SERVICE_ROLE_KEY=...
+   ```
+
+2. Install dependencies and start the application:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+3. Start a local Supabase stack and apply the version-controlled migration:
+
+   ```bash
+   npx supabase start
+   npx supabase db reset
+   ```
+
+The migration in `supabase/migrations` creates the schema, transactional
+functions, audit triggers, storage policies, and row-level security policies.
+For a linked hosted project, review the target and run `npx supabase db push`.
+
+## Verification
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run typecheck
+npm run test
+npm run test:rls
+npm run test:e2e
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`test:rls` requires a running local Supabase stack. Playwright downloads its
+Chromium runtime separately with `npx playwright install chromium`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Regenerate the application database types after a schema change:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run db:types
+```
 
-## Learn More
+The UI uses a local system-font stack, so production builds do not depend on
+Google Fonts or another remote font service.
 
-To learn more about Next.js, take a look at the following resources:
+## User onboarding
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Public sign-up is intentionally disabled. Administrators can invite one user
+from **Admin → Manage Users** or import up to 500 users from
+**Admin → Batch Onboarding**.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Student CSV columns:
 
-## Deploy on Vercel
+```text
+index_no,full_name,email,faculty,academic_year,dob,gender,contact_no
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Applied Sciences student indices are six digits and must match `2x2xxx`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Personnel CSV columns:
+
+```text
+employee_index,full_name,email,role,specialisation
+```
+
+Personnel roles are `worker`, `faculty`, or `doctor`. Administrators are
+invited individually. Every row is independently compensated on failure and
+recorded in `onboarding_imports` / `onboarding_import_rows` for review or
+invitation retry.
+
+Production invitations and password recovery require custom SMTP plus exact
+local and production `/auth/callback` URLs in Supabase Auth URL Configuration.

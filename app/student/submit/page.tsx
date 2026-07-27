@@ -139,7 +139,7 @@ export default function SubmitMedicalRecord() {
             <Link href="/student/profile" className="font-semibold underline underline-offset-2">
               profile
             </Link>
-            {' '}so the Medical Centre can contact you about this submission.
+            {' '}so the Medical Center can contact you about this submission.
           </div>
         )}
       </div>

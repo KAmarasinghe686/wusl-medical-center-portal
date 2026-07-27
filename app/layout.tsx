@@ -3,7 +3,7 @@ import "./globals.css";
 import "./portal-theme.css";
 
 export const metadata: Metadata = {
-  title: "Medical Centre Portal",
+  title: "Medical Center Portal",
   description: "Wayamba University of Sri Lanka",
   icons: {
     icon: "/favicon.ico",

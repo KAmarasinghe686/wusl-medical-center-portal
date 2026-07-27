@@ -116,11 +116,11 @@ export default function LoginPage() {
             <Image src="/logo.png" alt="Wayamba University of Sri Lanka crest" width={70} height={70} />
             <div className={styles.brandPanelCopy}>
               <span>Wayamba University of Sri Lanka</span>
-              <h1>Medical Centre Portal</h1>
+              <h1>Medical Center Portal</h1>
               <p>Secure access to university medical and health services.</p>
             </div>
             <div className={styles.brandPanelContact}>
-              <span>Medical Centre support</span>
+              <span>Medical Center support</span>
               <a href="tel:+94372284779">037 228 4779</a>
               <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
             </div>
@@ -246,7 +246,7 @@ export default function LoginPage() {
 
             <div className={styles.support}>
               <span>Having trouble signing in?</span>
-              <span>Contact the Medical Centre administration.</span>
+              <span>Contact the Medical Center administration.</span>
             </div>
           </div>
         </div>

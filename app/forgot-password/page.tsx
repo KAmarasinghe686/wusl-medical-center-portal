@@ -38,7 +38,7 @@ export default function ForgotPassword() {
           <Image src="/logo.png" alt="Wayamba University of Sri Lanka crest" width={52} height={52} />
           <div>
             <strong>Wayamba University of Sri Lanka</strong>
-            <span>Medical Centre Portal</span>
+            <span>Medical Center Portal</span>
           </div>
         </div>
         <div className="auth-recovery-card bg-white border border-gray-100 rounded-2xl shadow-sm p-8">

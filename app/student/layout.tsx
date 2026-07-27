@@ -121,7 +121,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         <div className="px-4 py-5 border-b border-white/10 flex flex-col items-center gap-2">
           <Image src="/logo.png" alt="WUSL Logo" width={52} height={52} className="object-contain drop-shadow-lg" />
           <div className="text-sm font-bold text-white text-center">Wayamba University</div>
-          <div className="text-xs text-blue-300/60 text-center">Medical Centre Portal</div>
+          <div className="text-xs text-blue-300/60 text-center">Medical Center Portal</div>
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
           {navLinks.map(link => (
@@ -132,7 +132,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
           ))}
         </nav>
         <div className="portal-sidebar-contact">
-          <span>Medical Centre</span>
+          <span>Medical Center</span>
           <a href="tel:+94372284779">037 228 4779</a>
           <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
         </div>
@@ -149,7 +149,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
               </svg>
             </button>
             <div className="portal-header-title">
-              <span>Medical Centre Portal</span>
+              <span>Medical Center Portal</span>
               <small>Student Services</small>
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
         <footer className="portal-footer py-4 text-center text-xs text-gray-400 border-t border-gray-100 bg-white">
           <div className="portal-footer-contact">
-            <span className="portal-footer-name">University Medical Centre · Kuliyapitiya</span>
+            <span className="portal-footer-name">University Medical Center · Kuliyapitiya</span>
             <a href="tel:+94372284779">037 228 4779</a>
             <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
             <span className="portal-footer-address">Lionel Jayathilaka Mawatha, Kuliyapitiya 60200</span>

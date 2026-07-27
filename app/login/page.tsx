@@ -61,12 +61,18 @@ export default function LoginPage() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, employee_index')
+      .select('role, employee_index, is_active')
       .eq('id', data.user.id)
       .single()
 
     if (!profile) {
       setError('No profile found. Please contact admin.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+    if (!profile.is_active) {
+      setError('This account has been deactivated. Contact the Medical Center administration.')
       await supabase.auth.signOut()
       setLoading(false)
       return

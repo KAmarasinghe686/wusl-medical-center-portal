@@ -33,6 +33,19 @@ export async function proxy(request: NextRequest) {
   if (!user && isProtectedPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
+  if (user && isProtectedPage) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_active')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!profile?.is_active) {
+      await supabase.auth.signOut()
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('error', 'This account has been deactivated. Contact the Medical Center administration.')
+      return NextResponse.redirect(loginUrl)
+    }
+  }
 
   return response
 }

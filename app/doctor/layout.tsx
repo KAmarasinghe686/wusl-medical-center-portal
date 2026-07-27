@@ -10,7 +10,7 @@ const supabase = createBrowserSupabaseClient()
 
 const navLinks = [
   { label: 'Dashboard', href: '/doctor/dashboard' },
-  { label: 'Assigned Records', href: '/doctor/records' },
+  { label: 'Review Queue', href: '/doctor/records' },
   { label: 'Medical Visits', href: '/doctor/visits' },
   { label: 'Availability', href: '/doctor/availability' },
   { label: 'Profile', href: '/doctor/profile' },

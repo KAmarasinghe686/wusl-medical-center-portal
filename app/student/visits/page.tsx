@@ -4,7 +4,7 @@ import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
 
 const supabase = createBrowserSupabaseClient()
 
-type Visit = { visit_id: number; visit_date: string; reason: string; doctors: { full_name: string } | null }
+type Visit = { visit_id: number; visit_date: string; reason: string; status: string; void_reason: string | null; doctors: { full_name: string } | null }
 
 
 const PER_PAGE = 5
@@ -19,7 +19,7 @@ export default function MyVisits() {
     const fetchVisits = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data } = await supabase.from('medical_visits').select('visit_id, visit_date, reason, doctors(full_name)').eq('user_id', user.id).order('visit_date', { ascending: false })
+      const { data } = await supabase.from('medical_visits').select('visit_id, visit_date, reason, status, void_reason, doctors(full_name)').eq('user_id', user.id).order('visit_date', { ascending: false })
       setVisits((data || []).map(visit => ({
         ...visit,
         doctors: Array.isArray(visit.doctors) ? visit.doctors[0] || null : visit.doctors,
@@ -53,21 +53,26 @@ export default function MyVisits() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Visit Date</th>
-                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Doctor</th>
-                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">Reason</th>
+                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Visit Date</th>
+                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Doctor</th>
+                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Reason</th>
+                <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                 
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
-                <tr><td colSpan={3} className="py-8 text-center text-xs text-gray-400">No visits found.</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-xs text-gray-400">No visits found.</td></tr>
               ) : paginated.map(v => (
                 <tr key={v.visit_id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                   <td className="py-3 px-5 text-xs text-gray-700">{v.visit_date}</td>
                   <td className="py-3 px-5 text-xs font-medium text-gray-800">{v.doctors?.full_name || '-'}</td>
                   <td className="py-3 px-5 text-xs text-gray-500">{v.reason}</td>
-                  
+                  <td className="py-3 px-5 text-xs">
+                    <span className={v.status === 'voided' ? 'text-red-600' : 'text-emerald-700'}>
+                      {v.status === 'voided' ? `Voided — ${v.void_reason || 'No reason recorded'}` : 'Completed'}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

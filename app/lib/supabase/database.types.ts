@@ -17,6 +17,10 @@ export type Database = {
             employee_index: string | null
             contact_no: string | null
             address: string | null
+            is_active: boolean
+            status_reason: string | null
+            status_changed_at: string | null
+            status_changed_by: string | null
             created_at: string
           }
           Insert: {
@@ -26,6 +30,10 @@ export type Database = {
             employee_index?: string | null
             contact_no?: string | null
             address?: string | null
+            is_active?: boolean
+            status_reason?: string | null
+            status_changed_at?: string | null
+            status_changed_by?: string | null
             created_at?: string
           }
           Update: {
@@ -34,6 +42,10 @@ export type Database = {
             employee_index?: string | null
             contact_no?: string | null
             address?: string | null
+            is_active?: boolean
+            status_reason?: string | null
+            status_changed_at?: string | null
+            status_changed_by?: string | null
           }
         Relationships: []
       }
@@ -153,6 +165,10 @@ export type Database = {
           diagnosis: string | null
           observation_notes: string | null
           recommendation: string | null
+          lifecycle_status: RecordLifecycleStatus
+          lifecycle_reason: string | null
+          lifecycle_changed_at: string | null
+          lifecycle_changed_by: string | null
           created_at: string
           updated_at: string
         }
@@ -169,6 +185,10 @@ export type Database = {
           diagnosis?: string | null
           observation_notes?: string | null
           recommendation?: string | null
+          lifecycle_status?: RecordLifecycleStatus
+          lifecycle_reason?: string | null
+          lifecycle_changed_at?: string | null
+          lifecycle_changed_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -182,6 +202,10 @@ export type Database = {
           diagnosis?: string | null
           observation_notes?: string | null
           recommendation?: string | null
+          lifecycle_status?: RecordLifecycleStatus
+          lifecycle_reason?: string | null
+          lifecycle_changed_at?: string | null
+          lifecycle_changed_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -208,6 +232,10 @@ export type Database = {
           file_path: string
           file_type: string
           file_size_kb: number
+          disposal_status: DocumentDisposalStatus
+          disposal_reason: string | null
+          disposed_at: string | null
+          disposed_by: string | null
           created_at: string
         }
         Insert: {
@@ -216,12 +244,20 @@ export type Database = {
           file_path: string
           file_type: string
           file_size_kb: number
+          disposal_status?: DocumentDisposalStatus
+          disposal_reason?: string | null
+          disposed_at?: string | null
+          disposed_by?: string | null
           created_at?: string
         }
         Update: {
           file_path?: string
           file_type?: string
           file_size_kb?: number
+          disposal_status?: DocumentDisposalStatus
+          disposal_reason?: string | null
+          disposed_at?: string | null
+          disposed_by?: string | null
         }
         Relationships: [
           {
@@ -245,6 +281,9 @@ export type Database = {
           patient_name: string
           patient_index: string
           patient_type: PatientType
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
           created_at: string
           updated_at: string
         }
@@ -259,6 +298,9 @@ export type Database = {
           patient_name: string
           patient_index: string
           patient_type: PatientType
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -267,6 +309,9 @@ export type Database = {
           reason?: string
           notes?: string | null
           status?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -369,6 +414,58 @@ export type Database = {
             isOneToOne: false
             referencedRelation: 'doctors'
             referencedColumns: ['doctor_id']
+          },
+        ]
+      }
+      account_status_history: {
+        Row: {
+          history_id: number
+          user_id: string
+          previous_status: AccountLifecycleStatus
+          new_status: AccountLifecycleStatus
+          reason: string
+          changed_by: string
+          changed_at: string
+        }
+        Insert: {
+          history_id?: number
+          user_id: string
+          previous_status: AccountLifecycleStatus
+          new_status: AccountLifecycleStatus
+          reason: string
+          changed_by: string
+          changed_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
+      medical_record_lifecycle_history: {
+        Row: {
+          history_id: number
+          record_id: number
+          previous_status: RecordLifecycleStatus
+          new_status: RecordLifecycleStatus
+          reason: string
+          changed_by: string
+          changed_at: string
+        }
+        Insert: {
+          history_id?: number
+          record_id: number
+          previous_status: RecordLifecycleStatus
+          new_status: RecordLifecycleStatus
+          reason: string
+          changed_by: string
+          changed_at?: string
+        }
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'medical_record_lifecycle_history_record_id_fkey'
+            columns: ['record_id']
+            isOneToOne: false
+            referencedRelation: 'medical_records'
+            referencedColumns: ['record_id']
           },
         ]
       }
@@ -484,6 +581,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_set_account_status: {
+        Args: {
+          p_actor_id: string
+          p_user_id: string
+          p_is_active: boolean
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      admin_change_medical_record_lifecycle: {
+        Args: {
+          p_actor_id: string
+          p_record_id: number
+          p_new_status: RecordLifecycleStatus
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      void_medical_visit: {
+        Args: {
+          p_actor_id: string
+          p_visit_id: number
+          p_reason: string
+        }
+        Returns: undefined
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
@@ -492,6 +615,9 @@ export type Database = {
 
 export type UserRole = 'student' | 'doctor' | 'worker' | 'faculty' | 'admin' | 'unassigned'
 export type RecordStatus = 'pending' | 'approved' | 'rejected'
+export type RecordLifecycleStatus = 'active' | 'archived' | 'invalidated'
+export type AccountLifecycleStatus = 'active' | 'inactive'
+export type DocumentDisposalStatus = 'retained' | 'disposal_pending' | 'disposed'
 export type PatientType = 'Student' | 'Employee'
 export type ImportType = 'students' | 'personnel'
 export type ImportJobStatus = 'processing' | 'completed' | 'partial' | 'failed'

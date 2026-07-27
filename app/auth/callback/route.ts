@@ -83,13 +83,17 @@ export async function GET(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, employee_index')
+    .select('role, employee_index, is_active')
     .eq('id', user.id)
     .single()
 
   if (!profile?.role || !roleRoutes[profile.role]) {
     await supabase.auth.signOut()
     return loginError(request, 'This Google account is not registered for the portal.')
+  }
+  if (!profile.is_active) {
+    await supabase.auth.signOut()
+    return loginError(request, 'This account has been deactivated. Contact the Medical Center administration.')
   }
 
   const canAccessStaff = expectedRole === 'worker' && (

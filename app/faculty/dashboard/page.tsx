@@ -32,12 +32,12 @@ export default function FacultyDashboard() {
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString()
       const { data: { session } } = await supabase.auth.getSession()
       const [approvedRes, monthlyRes, userCounts, recentRes] = await Promise.all([
-        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('status', 'approved').eq('lifecycle_status', 'active'),
         supabase.from('medical_records').select('*', { count: 'exact', head: true })
-          .eq('status', 'approved').gte('created_at', monthStart).lt('created_at', nextMonth),
+          .eq('status', 'approved').eq('lifecycle_status', 'active').gte('created_at', monthStart).lt('created_at', nextMonth),
         fetchPortalUserCounts(session?.access_token),
         supabase.from('medical_records').select('*, students(full_name, index_no, faculty)')
-          .eq('status', 'approved').order('created_at', { ascending: false }).limit(5),
+          .eq('status', 'approved').eq('lifecycle_status', 'active').order('created_at', { ascending: false }).limit(5),
       ])
       setStats({
         approved: approvedRes.count || 0,

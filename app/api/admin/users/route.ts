@@ -6,7 +6,7 @@ import { cleanText, isEmail } from '../../../lib/validation'
 
 type ProfileRow = Pick<
   TableRow<'profiles'>,
-  'id' | 'full_name' | 'role' | 'employee_index' | 'created_at'
+  'id' | 'full_name' | 'role' | 'employee_index' | 'is_active' | 'status_reason' | 'status_changed_at' | 'created_at'
 >
 
 type RoleNameRow = {
@@ -37,7 +37,7 @@ async function listAllProfiles(serviceClient: NonNullable<Awaited<ReturnType<typ
   while (true) {
     const { data, error } = await serviceClient
       .from('profiles')
-      .select('id, full_name, role, employee_index, created_at')
+      .select('id, full_name, role, employee_index, is_active, status_reason, status_changed_at, created_at')
       .order('created_at', { ascending: false })
       .range(from, from + 999)
 
@@ -118,7 +118,9 @@ export async function GET(request: Request) {
           employee_index: profile?.role === 'student'
             ? studentsById.get(user.id)?.index_no || null
             : profile?.employee_index || null,
-          is_active: Number.isNaN(bannedUntil) || bannedUntil <= Date.now(),
+          is_active: profile?.is_active !== false && (Number.isNaN(bannedUntil) || bannedUntil <= Date.now()),
+          status_reason: profile?.status_reason || null,
+          status_changed_at: profile?.status_changed_at || null,
           created_at: profile?.created_at || user.created_at,
         }
       })
@@ -154,10 +156,37 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'You cannot deactivate your own administrator account.' }, { status: 400 })
     }
 
-    const { error } = await serviceClient.auth.admin.updateUserById(values.id, {
+    const reason = cleanText(values.reason, 500)
+    if (reason.length < 5) {
+      return NextResponse.json({ error: 'Enter a clear reason of at least 5 characters.' }, { status: 400 })
+    }
+
+    const { data: targetProfile, error: targetProfileError } = await serviceClient
+      .from('profiles')
+      .select('is_active')
+      .eq('id', values.id)
+      .maybeSingle()
+    if (targetProfileError || !targetProfile) {
+      return NextResponse.json({ error: 'User profile not found.' }, { status: 404 })
+    }
+
+    const { error: authError } = await serviceClient.auth.admin.updateUserById(values.id, {
       ban_duration: values.is_active ? 'none' : '876000h',
     })
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
+
+    const { error: statusError } = await serviceClient.rpc('admin_set_account_status', {
+      p_actor_id: authorization.user.id,
+      p_user_id: values.id,
+      p_is_active: values.is_active,
+      p_reason: reason,
+    })
+    if (statusError) {
+      await serviceClient.auth.admin.updateUserById(values.id, {
+        ban_duration: targetProfile.is_active ? 'none' : '876000h',
+      })
+      return NextResponse.json({ error: statusError.message }, { status: 400 })
+    }
     return NextResponse.json({ success: true })
   }
 

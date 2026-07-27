@@ -42,7 +42,7 @@ function ApprovedRecords() {
   useEffect(() => {
     const fetchData = async () => {
       const [recordsRes, visitsRes] = await Promise.all([
-        supabase.from('medical_records').select('*, students(full_name, index_no)').eq('status', 'approved').order('created_at', { ascending: false }),
+        supabase.from('medical_records').select('*, students(full_name, index_no)').eq('status', 'approved').eq('lifecycle_status', 'active').order('created_at', { ascending: false }),
         supabase.from('medical_visits').select('*, doctors(full_name)').eq('patient_type', 'Student').order('visit_date', { ascending: false }),
       ])
       setRecords((recordsRes.data || []).map(record => ({
@@ -116,6 +116,7 @@ function ApprovedRecords() {
                     <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/5">Index No</th>
                     <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/5">Doctor</th>
                     <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/5">Reason</th>
+                    <th className="text-left py-2.5 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/5">Status</th>
                   </>
                 )}
               </tr>
@@ -148,6 +149,9 @@ function ApprovedRecords() {
                     <td className="py-3 px-5 text-xs text-gray-500">{v.patient_index || '-'}</td>
                     <td className="py-3 px-5 text-xs text-gray-500">{v.doctors?.full_name || '-'}</td>
                     <td className="py-3 px-5 text-xs text-gray-500">{v.reason}</td>
+                    <td className={`py-3 px-5 text-xs ${v.status === 'voided' ? 'text-red-600' : 'text-emerald-700'}`}>
+                      {v.status === 'voided' ? `Voided — ${v.void_reason || 'No reason recorded'}` : 'Completed'}
+                    </td>
                   </tr>
                 ))
               )}

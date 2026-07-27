@@ -117,10 +117,18 @@ export async function PATCH(request: Request) {
   const body: unknown = await request.json().catch(() => null)
   const values = body && typeof body === 'object' ? body as Record<string, unknown> : {}
   const visitId = Number(values.visitId)
+  const action = values.action === 'void' ? 'void' : 'edit'
   const reason = cleanText(values.reason, 1000)
   const notes = cleanText(values.notes, 4000) || null
-  if (!Number.isInteger(visitId) || visitId <= 0 || !reason) {
-    return NextResponse.json({ error: 'A valid visit and reason are required.' }, { status: 400 })
+  const voidReason = cleanText(values.voidReason, 1000)
+  if (!Number.isInteger(visitId) || visitId <= 0) {
+    return NextResponse.json({ error: 'A valid visit is required.' }, { status: 400 })
+  }
+  if (action === 'edit' && !reason) {
+    return NextResponse.json({ error: 'A visit reason is required.' }, { status: 400 })
+  }
+  if (action === 'void' && voidReason.length < 5) {
+    return NextResponse.json({ error: 'Enter a clear void reason of at least 5 characters.' }, { status: 400 })
   }
 
   const { serviceClient, user } = authorization
@@ -135,6 +143,33 @@ export async function PATCH(request: Request) {
     .maybeSingle()
   if (previousError) return NextResponse.json({ error: previousError.message }, { status: 500 })
   if (!previous) return NextResponse.json({ error: 'Visit not found.' }, { status: 404 })
+  if (previous.status === 'voided') {
+    return NextResponse.json({ error: 'This visit has already been voided.' }, { status: 409 })
+  }
+
+  if (action === 'void') {
+    const { error: voidError } = await serviceClient.rpc('void_medical_visit', {
+      p_actor_id: user.id,
+      p_visit_id: visitId,
+      p_reason: voidReason,
+    })
+    if (voidError) {
+      return NextResponse.json({ error: voidError.message || 'Unable to void the visit.' }, { status: 400 })
+    }
+
+    const { data: voided, error: readError } = await serviceClient
+      .from('medical_visits')
+      .select('*')
+      .eq('visit_id', visitId)
+      .single()
+    if (readError || !voided) {
+      return NextResponse.json(
+        { error: 'The visit was voided, but its updated details could not be reloaded.' },
+        { status: 500 }
+      )
+    }
+    return NextResponse.json({ success: true, visit: voided })
+  }
 
   const { data: updated, error } = await serviceClient
     .from('medical_visits')
@@ -166,64 +201,4 @@ export async function PATCH(request: Request) {
   }
 
   return NextResponse.json({ success: true, visit: updated })
-}
-
-export async function DELETE(request: Request) {
-  const authorization = await authorizeRequest(request, ['doctor'])
-  if (authorization.error) return authorization.error
-
-  const visitId = Number(new URL(request.url).searchParams.get('id'))
-  if (!Number.isInteger(visitId) || visitId <= 0) {
-    return NextResponse.json({ error: 'A valid visit ID is required.' }, { status: 400 })
-  }
-
-  const { serviceClient, user } = authorization
-  const doctorId = await doctorIdFor(serviceClient, user.id).catch(() => null)
-  if (!doctorId) return NextResponse.json({ error: 'Doctor profile not found.' }, { status: 409 })
-
-  const { data: previous, error: previousError } = await serviceClient
-    .from('medical_visits')
-    .select('*')
-    .eq('visit_id', visitId)
-    .eq('doctor_id', doctorId)
-    .maybeSingle()
-  if (previousError) return NextResponse.json({ error: previousError.message }, { status: 500 })
-  if (!previous) return NextResponse.json({ error: 'Visit not found.' }, { status: 404 })
-
-  const { error } = await serviceClient
-    .from('medical_visits')
-    .delete()
-    .eq('visit_id', visitId)
-    .eq('doctor_id', doctorId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-
-  const { error: auditError } = await serviceClient.from('audit_logs').insert({
-    action: 'DELETE',
-    table_name: 'medical_visits',
-    record_id: String(visitId),
-    user_id: user.id,
-    old_data: previous,
-  })
-  if (auditError) {
-    const { error: rollbackError } = await serviceClient.from('medical_visits').insert({
-      visit_id: visitId,
-      doctor_id: previous.doctor_id,
-      user_id: previous.user_id,
-      visit_date: previous.visit_date,
-      reason: previous.reason,
-      notes: previous.notes,
-      status: previous.status,
-      patient_name: previous.patient_name,
-      patient_index: previous.patient_index,
-      patient_type: previous.patient_type,
-      created_at: previous.created_at,
-      updated_at: previous.updated_at,
-    })
-    const message = rollbackError
-      ? 'The visit audit and automatic restore both failed. An administrator must reconcile this deletion.'
-      : 'The visit deletion could not be audited and was rolled back.'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true })
 }

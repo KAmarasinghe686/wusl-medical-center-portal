@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     .from('profiles')
     .select('role')
     .in('role', [...PORTAL_ROLES])
+    .eq('is_active', true)
 
   if (error) {
     return NextResponse.json({ error: 'Unable to load user counts.' }, { status: 500 })

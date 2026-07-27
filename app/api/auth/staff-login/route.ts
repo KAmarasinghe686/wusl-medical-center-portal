@@ -20,13 +20,19 @@ export async function POST(request: Request) {
 
   const { data: profile } = await serviceClient
     .from('profiles')
-    .select('id, role, employee_index')
+    .select('id, role, employee_index, is_active')
     .eq('employee_index', employeeIndex)
     .single()
 
   const canAccessStaff = profile?.role === 'worker' || (profile?.role === 'admin' && Boolean(profile.employee_index))
   if (!profile || !canAccessStaff) {
     return NextResponse.json({ error: 'Invalid employee ID or password.' }, { status: 401 })
+  }
+  if (!profile.is_active) {
+    return NextResponse.json(
+      { error: 'This account has been deactivated. Contact the Medical Center administration.' },
+      { status: 403 }
+    )
   }
 
   const { data: authUser, error: userError } = await serviceClient.auth.admin.getUserById(profile.id)

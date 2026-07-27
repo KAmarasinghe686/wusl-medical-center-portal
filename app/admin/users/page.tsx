@@ -15,6 +15,8 @@ type ManagedUser = {
   role: string
   employee_index: string | null
   is_active: boolean
+  status_reason: string | null
+  status_changed_at: string | null
   created_at: string
 }
 
@@ -55,6 +57,10 @@ export default function ManageUsers() {
   const [roleFilter, setRoleFilter] = useState('All')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editUser, setEditUser] = useState<ManagedUser | null>(null)
+  const [statusUser, setStatusUser] = useState<ManagedUser | null>(null)
+  const [statusReason, setStatusReason] = useState('')
+  const [statusSaving, setStatusSaving] = useState(false)
+  const [statusError, setStatusError] = useState('')
   const [form, setForm] = useState({ email: '' })
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
@@ -98,19 +104,38 @@ export default function ManageUsers() {
     return () => { active = false }
   }, [refreshKey])
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    setLoadError('')
-    const response = await adminRequest({
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'toggle-active', is_active: !currentStatus }),
-    })
-    const result = await response.json()
-    if (!response.ok) {
-      setLoadError(result.error || 'Unable to update this account.')
+  const handleStatusChange = async () => {
+    if (!statusUser) return
+    if (statusReason.trim().length < 5) {
+      setStatusError('Enter a clear reason of at least 5 characters.')
       return
     }
-    setRefreshKey(current => current + 1)
+    setStatusSaving(true)
+    setStatusError('')
+    try {
+      const response = await adminRequest({
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: statusUser.id,
+          action: 'toggle-active',
+          is_active: !statusUser.is_active,
+          reason: statusReason,
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) {
+        setStatusError(result.error || 'Unable to update this account.')
+        return
+      }
+      setStatusUser(null)
+      setStatusReason('')
+      setRefreshKey(current => current + 1)
+    } catch (error) {
+      setStatusError(error instanceof Error ? error.message : 'Unable to update this account.')
+    } finally {
+      setStatusSaving(false)
+    }
   }
 
   const handleSave = async () => {
@@ -273,6 +298,62 @@ export default function ManageUsers() {
       )}
 
       {/* Account access modal */}
+      {statusUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
+            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-2">
+              {statusUser.is_active ? 'Deactivate Account' : 'Reactivate Account'}
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              {statusUser.full_name || statusUser.email}
+            </p>
+            {!statusUser.is_active && statusUser.status_reason && (
+              <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                Previous reason: {statusUser.status_reason}
+              </div>
+            )}
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              {statusUser.is_active ? 'Deactivation Reason *' : 'Reactivation Reason *'}
+            </label>
+            <textarea
+              rows={4}
+              value={statusReason}
+              onChange={event => setStatusReason(event.target.value)}
+              maxLength={500}
+              placeholder="Explain why this access change is authorized..."
+              className={modalInputClass + ' mt-1 resize-none'}
+            />
+            {statusError && (
+              <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">
+                {statusError}
+              </div>
+            )}
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleStatusChange}
+                disabled={statusSaving}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg text-white transition-colors disabled:opacity-50 ${
+                  statusUser.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-700 hover:bg-emerald-800'
+                }`}
+              >
+                {statusSaving ? 'Saving...' : statusUser.is_active ? 'Deactivate Account' : 'Reactivate Account'}
+              </button>
+              <button
+                onClick={() => {
+                  setStatusUser(null)
+                  setStatusReason('')
+                  setStatusError('')
+                }}
+                disabled={statusSaving}
+                className="flex-1 border border-gray-200 text-gray-600 py-2.5 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {editUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
@@ -387,7 +468,11 @@ export default function ManageUsers() {
                         className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-blue-800 hover:text-white hover:border-blue-800 transition-colors">
                         Manage Access
                       </button>
-                      <button onClick={() => toggleActive(u.id, u.is_active !== false)}
+                      <button onClick={() => {
+                        setStatusUser(u)
+                        setStatusReason('')
+                        setStatusError('')
+                      }}
                         className={`text-xs border rounded-lg px-3 py-1.5 transition-colors ${u.is_active !== false ? 'border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'}`}>
                         {u.is_active !== false ? 'Deactivate' : 'Activate'}
                       </button>

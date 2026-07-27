@@ -51,12 +51,13 @@ export default function StudentDashboard() {
           .from('medical_records')
           .select('record_id, purpose, issue_date, status')
           .eq('student_id', student.student_id)
+          .eq('lifecycle_status', 'active')
           .order('created_at', { ascending: false })
           .limit(5),
-        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id),
-        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('status', 'pending'),
-        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('status', 'approved'),
-        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('status', 'rejected'),
+        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('lifecycle_status', 'active'),
+        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('lifecycle_status', 'active').eq('status', 'pending'),
+        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('lifecycle_status', 'active').eq('status', 'approved'),
+        supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('student_id', student.student_id).eq('lifecycle_status', 'active').eq('status', 'rejected'),
       ])
       if (recent.data) {
         setRecords(recent.data)

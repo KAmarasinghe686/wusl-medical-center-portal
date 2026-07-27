@@ -67,6 +67,7 @@ function ReviewRecord() {
         .from('medical_records')
         .select('*, students(full_name, index_no, faculty, dob)')
         .eq('record_id', recordId)
+        .eq('lifecycle_status', 'active')
         .or(`status.eq.pending,reviewed_by.eq.${doctorId}`)
         .single()
 
@@ -84,7 +85,11 @@ function ReviewRecord() {
       setDiagnosis(data.diagnosis || '')
       setNotes(data.observation_notes || '')
       setRecommendation(data.recommendation || '')
-      const { data: imagesData } = await supabase.from('record_images').select('*').eq('record_id', recordId)
+      const { data: imagesData } = await supabase
+        .from('record_images')
+        .select('*')
+        .eq('record_id', recordId)
+        .eq('disposal_status', 'retained')
       if (!active) return
       setImages(imagesData || [])
       setRecordError('')
@@ -175,7 +180,7 @@ function ReviewRecord() {
   if (!id) return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Review Record</h1>
-      <p className="text-sm text-gray-500">Please select a record to review from <a href="/doctor/records" className="text-blue-800 underline">Assigned Records</a>.</p>
+      <p className="text-sm text-gray-500">Please select a record from the <a href="/doctor/records" className="text-blue-800 underline">Review Queue</a>.</p>
     </div>
   )
   if (recordLoading) return <div className="p-8 text-sm text-gray-400">Loading...</div>
@@ -194,7 +199,7 @@ function ReviewRecord() {
   return (
     <div className="p-6 lg:p-8">
       <div className="flex items-center gap-2 mb-6">
-        <Link href="/doctor/records" className="text-xs text-gray-400 hover:text-blue-800">Assigned Records</Link>
+        <Link href="/doctor/records" className="text-xs text-gray-400 hover:text-blue-800">Review Queue</Link>
         <span className="text-gray-300">/</span>
         <span className="text-xs text-blue-800 font-medium">Review REC-{record.record_id}</span>
       </div>

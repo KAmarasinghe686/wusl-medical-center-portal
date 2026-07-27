@@ -27,6 +27,7 @@ export default function MyRecords() {
         .from('medical_records')
         .select('*')
         .eq('student_id', student.student_id)
+        .eq('lifecycle_status', 'active')
         .order('issue_date', { ascending: false })
       setRecords(data || [])
     }

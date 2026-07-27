@@ -15,16 +15,16 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const statCards = [
-  { key: 'assigned', label: 'Assigned Records', border: 'border-l-blue-400' },
-  { key: 'pending', label: 'Pending Reviews', border: 'border-l-amber-400' },
-  { key: 'approved', label: 'Approved Records', border: 'border-l-emerald-400' },
+  { key: 'queue', label: 'Open Review Queue', border: 'border-l-blue-400' },
+  { key: 'approved', label: 'My Approved', border: 'border-l-emerald-400' },
+  { key: 'rejected', label: 'My Rejected', border: 'border-l-red-400' },
   { key: 'visitsToday', label: 'Visits Today', border: 'border-l-violet-400' },
 ]
 
 export default function DoctorDashboard() {
   const { doctor, loading, supabase } = useDoctor()
   const [records, setRecords] = useState<MedicalRecord[]>([])
-  const [stats, setStats] = useState({ assigned: 0, pending: 0, approved: 0, visitsToday: 0 })
+  const [stats, setStats] = useState({ queue: 0, approved: 0, rejected: 0, visitsToday: 0 })
   const [recordsError, setRecordsError] = useState('')
   const doctorId = doctor?.doctor_id
 
@@ -38,12 +38,14 @@ export default function DoctorDashboard() {
         supabase
           .from('medical_records')
           .select('record_id, purpose, issue_date, status, students(full_name, index_no)')
+          .eq('lifecycle_status', 'active')
           .or(`status.eq.pending,reviewed_by.eq.${doctorId}`)
           .order('created_at', { ascending: false })
           .limit(5),
         supabase
           .from('medical_records')
           .select('status')
+          .eq('lifecycle_status', 'active')
           .or(`status.eq.pending,reviewed_by.eq.${doctorId}`),
         supabase
           .from('medical_visits')
@@ -68,9 +70,9 @@ export default function DoctorDashboard() {
         setRecords(normalizedRecords)
         const assignedRecords = statsResult.data || []
         setStats({
-          assigned: assignedRecords.length,
-          pending: assignedRecords.filter(record => record.status === 'pending').length,
+          queue: assignedRecords.filter(record => record.status === 'pending').length,
           approved: assignedRecords.filter(record => record.status === 'approved').length,
+          rejected: assignedRecords.filter(record => record.status === 'rejected').length,
           visitsToday: visitsResult.count || 0,
         })
         setRecordsError('')
@@ -115,13 +117,13 @@ export default function DoctorDashboard() {
 
       {recordsError && (
         <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">
-          Unable to load assigned records: {recordsError}
+          Unable to load the review queue: {recordsError}
         </div>
       )}
 
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
         <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Assigned Medical Records</h2>
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Review Queue and My Reviews</h2>
           <Link href="/doctor/records" className="text-xs text-blue-800 hover:text-blue-600 font-medium">View All →</Link>
         </div>
         <div className="overflow-x-auto">
@@ -138,7 +140,7 @@ export default function DoctorDashboard() {
             </thead>
             <tbody>
               {records.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-xs text-gray-400">No records assigned.</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-xs text-gray-400">No pending or previously reviewed records.</td></tr>
               ) : records.map(r => (
                 <tr key={r.record_id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                   <td className="py-3 px-5 text-xs font-mono font-medium text-blue-800">REC-{r.record_id}</td>

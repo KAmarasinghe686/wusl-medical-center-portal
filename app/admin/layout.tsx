@@ -12,6 +12,7 @@ const navLinks = [
   { label: 'Dashboard', href: '/admin/dashboard' },
   { label: 'Manage Users', href: '/admin/users' },
   { label: 'Batch Onboarding', href: '/admin/users/import' },
+  { label: 'Record Lifecycle', href: '/admin/records' },
   { label: 'System Overview', href: '/admin/system' },
   { label: 'Profile', href: '/admin/profile' },
 ]

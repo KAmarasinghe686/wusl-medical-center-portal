@@ -30,6 +30,7 @@ export default function AssignedRecords() {
       const { data, error } = await supabase
         .from('medical_records')
         .select('*, students(full_name, index_no)')
+        .eq('lifecycle_status', 'active')
         .or(`status.eq.pending,reviewed_by.eq.${doctorId}`)
         .order('created_at', { ascending: false })
 
@@ -77,8 +78,8 @@ export default function AssignedRecords() {
     <div className="p-6 lg:p-8">
 <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-start mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Assigned Records</h1>
-            <p className="text-sm text-gray-500">Medical records assigned to your review.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Review Queue</h1>
+            <p className="text-sm text-gray-500">Review pending records and access decisions you previously made.</p>
           </div>
           <input type="text" placeholder="Search student..." value={search} onChange={e => setSearch(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-800 w-full sm:w-72 lg:w-48 shadow-sm" />
@@ -87,10 +88,10 @@ export default function AssignedRecords() {
       {/* Corrected Stats Cards Layout */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { label: 'Total Assigned', value: records.length, border: 'border-l-blue-400' },
-          { label: 'Pending Review', value: records.filter(r => r.status === 'pending').length, border: 'border-l-amber-400' },
-          { label: 'Approved', value: records.filter(r => r.status === 'approved').length, border: 'border-l-emerald-400' },
-          { label: 'Rejected', value: records.filter(r => r.status === 'rejected').length, border: 'border-l-red-400' },
+          { label: 'Open Review Queue', value: records.filter(r => r.status === 'pending').length, border: 'border-l-blue-400' },
+          { label: 'My Completed Reviews', value: records.filter(r => r.status !== 'pending').length, border: 'border-l-violet-400' },
+          { label: 'My Approved', value: records.filter(r => r.status === 'approved').length, border: 'border-l-emerald-400' },
+          { label: 'My Rejected', value: records.filter(r => r.status === 'rejected').length, border: 'border-l-red-400' },
         ].map(s => (
           <div key={s.label} className={`bg-white border border-gray-200 border-l-4 ${s.border} rounded-r-xl p-4 flex flex-col gap-1`}>
             <div className="text-2xl font-bold text-gray-800">{s.value}</div>
@@ -101,7 +102,7 @@ export default function AssignedRecords() {
 
       {recordsError && (
         <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">
-          Unable to load assigned records: {recordsError}
+          Unable to load the review queue: {recordsError}
         </div>
       )}
 

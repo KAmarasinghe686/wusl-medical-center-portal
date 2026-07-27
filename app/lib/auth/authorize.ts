@@ -43,16 +43,19 @@ export async function authorizeRequest(
 
   const { data: profile, error: profileError } = await serviceClient
     .from('profiles')
-    .select('role')
+    .select('role, is_active')
     .eq('id', user.id)
     .single()
 
-  if (profileError || !profile || !allowedRoles.includes(profile.role)) {
+  if (profileError || !profile || !profile.is_active || !allowedRoles.includes(profile.role)) {
     return {
       user: null,
       role: null,
       serviceClient: null,
-      error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
+      error: NextResponse.json(
+        { error: profile && !profile.is_active ? 'This account has been deactivated.' : 'Forbidden' },
+        { status: 403 }
+      ),
     }
   }
 

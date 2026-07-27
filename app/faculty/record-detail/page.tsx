@@ -40,6 +40,7 @@ function FacultyRecordDetail() {
         .select('*, students(full_name, index_no, faculty, dob), doctors(full_name)')
         .eq('record_id', recordId)
         .eq('status', 'approved')
+        .eq('lifecycle_status', 'active')
         .single()
       if (data) {
         setRecord({
@@ -48,7 +49,11 @@ function FacultyRecordDetail() {
           doctors: Array.isArray(data.doctors) ? data.doctors[0] || null : data.doctors,
         })
       }
-      const { data: imagesData } = await supabase.from('record_images').select('*').eq('record_id', recordId)
+      const { data: imagesData } = await supabase
+        .from('record_images')
+        .select('*')
+        .eq('record_id', recordId)
+        .eq('disposal_status', 'retained')
       setImages(imagesData || [])
       setLoading(false)
     }
@@ -114,7 +119,7 @@ function FacultyRecordDetail() {
             </span>
           </div>
           <div className="flex flex-col gap-3 mt-4">
-            {[['Faculty', record.students?.faculty || 'N/A'], ['Date of Birth', record.students?.dob || 'N/A'], ['Reviewed By', record.doctors?.full_name || 'N/A']].map(([k, v]) => (
+            {[['Faculty', record.students?.faculty || 'N/A'], ['Date of Birth', record.students?.dob || 'N/A'], ['Approved By', record.doctors?.full_name || 'N/A']].map(([k, v]) => (
               <div key={k} className="flex justify-between">
                 <span className="text-xs text-gray-400 uppercase font-semibold">{k}</span>
                 <span className="text-xs text-gray-800 font-medium">{v}</span>

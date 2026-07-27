@@ -20,7 +20,11 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-type MedicalRecordDetail = TableRow<'medical_records'> & { can_resubmit?: boolean }
+type ReviewingDoctor = Pick<TableRow<'doctors'>, 'full_name'>
+type MedicalRecordDetail = TableRow<'medical_records'> & {
+  can_resubmit?: boolean
+  doctors: ReviewingDoctor | null
+}
 
 export default function RecordDetailPage() {
   return (
@@ -42,9 +46,22 @@ function RecordDetail() {
   useEffect(() => {
     if (!validRecordId) return
     const fetchRecord = async () => {
-      const { data } = await supabase.from('medical_records').select('*').eq('record_id', recordId).single()
-      setRecord(data)
-      const { data: imagesData } = await supabase.from('record_images').select('*').eq('record_id', recordId)
+      const { data } = await supabase
+        .from('medical_records')
+        .select('*, doctors(full_name)')
+        .eq('record_id', recordId)
+        .single()
+      if (data) {
+        setRecord({
+          ...data,
+          doctors: Array.isArray(data.doctors) ? data.doctors[0] || null : data.doctors,
+        })
+      }
+      const { data: imagesData } = await supabase
+        .from('record_images')
+        .select('*')
+        .eq('record_id', recordId)
+        .eq('disposal_status', 'retained')
       setImages(imagesData || [])
       setLoading(false)
     }
@@ -81,6 +98,21 @@ function RecordDetail() {
       </div>
 
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Record Detail</h1>
+
+      {record.lifecycle_status !== 'active' && (
+        <div className={`mb-6 rounded-xl border px-4 py-3 ${
+          record.lifecycle_status === 'invalidated'
+            ? 'border-red-200 bg-red-50 text-red-700'
+            : 'border-slate-200 bg-slate-50 text-slate-700'
+        }`}>
+          <div className="text-xs font-bold uppercase tracking-wider">
+            Record {record.lifecycle_status}
+          </div>
+          <div className="mt-1 text-sm">
+            {record.lifecycle_reason || 'Contact the Medical Center administration for details.'}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-4">
@@ -149,6 +181,12 @@ function RecordDetail() {
           <StatusBadge status={record.status} />
           <div className="mt-4 text-xs text-gray-400 uppercase font-semibold">Created</div>
           <div className="text-sm font-medium text-gray-800 mt-1">{new Date(record.created_at).toLocaleDateString()}</div>
+          {record.status !== 'pending' && record.reviewed_by && (
+            <>
+              <div className="mt-4 text-xs text-gray-400 uppercase font-semibold">Reviewed By</div>
+              <div className="text-sm font-medium text-gray-800 mt-1">{record.doctors?.full_name || 'University Medical Officer'}</div>
+            </>
+          )}
           {record.can_resubmit && (
             <Link href="/student/submit" className="mt-4 block text-center bg-blue-800 text-white text-xs px-3 py-2 rounded-lg font-semibold hover:bg-blue-900 transition-colors">
               Resubmit Record

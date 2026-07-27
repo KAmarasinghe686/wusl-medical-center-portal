@@ -166,8 +166,8 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
             </Link>
             <Link href="/student/profile" className="flex items-center gap-2">
               <div
-                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${studentAvatar ? '' : 'bg-blue-800'}`}
-                style={studentAvatar ? { backgroundImage: `url(${studentAvatar})` } : undefined}
+                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${studentAvatar ? 'has-avatar-image' : 'bg-blue-800'}`}
+                style={studentAvatar ? ({ '--portal-avatar-image': `url(${studentAvatar})` } as React.CSSProperties) : undefined}
               >
                 {!studentAvatar && (studentName?.charAt(0) || 'S')}
               </div>

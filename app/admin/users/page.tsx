@@ -55,7 +55,7 @@ export default function ManageUsers() {
   const [roleFilter, setRoleFilter] = useState('All')
   const [showAddModal, setShowAddModal] = useState(false)
   const [editUser, setEditUser] = useState<ManagedUser | null>(null)
-  const [form, setForm] = useState({ full_name: '', email: '', role: 'student', employee_index: '' })
+  const [form, setForm] = useState({ email: '' })
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [addForm, setAddForm] = useState({
@@ -122,7 +122,7 @@ export default function ManageUsers() {
       const response = await adminRequest({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editUser.id, action: 'edit', ...form }),
+        body: JSON.stringify({ id: editUser.id, action: 'update-email', email: form.email }),
       })
       const result = await response.json()
       if (!response.ok) {
@@ -272,15 +272,20 @@ export default function ManageUsers() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Account access modal */}
       {editUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
-            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">Edit User</h2>
+            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4">Manage Account Access</h2>
             <div className="flex flex-col gap-3">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs leading-5 text-gray-600">
+                Name, role, and institutional ID are controlled by Student Registry or HR and cannot be changed here.
+              </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</label>
-                <input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} className={modalInputClass} />
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</span>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                  {editUser.full_name || 'Not available'}
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Real Login Email</label>
@@ -291,19 +296,18 @@ export default function ManageUsers() {
                 </p>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Role</label>
-                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })}
-                  className={modalInputClass + ' bg-white'}>
-                  {EDIT_ROLES.map(r => <option key={r} value={r}>{r === 'worker' ? 'staff' : r}</option>)}
-                </select>
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Role</span>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                  <RoleBadge role={editUser.role} />
+                </div>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  {form.role === 'student' ? 'Student Index' : 'Employee Index'}
-                </label>
-                <input value={form.employee_index} onChange={e => setForm({ ...form, employee_index: e.target.value })}
-                  placeholder={form.role === 'student' ? 'Six digits: 2x2xxx' : 'e.g. WUSL/EMP/001'}
-                  className={modalInputClass} />
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  {editUser.role === 'student' ? 'Student Index' : 'Employee Index'}
+                </span>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                  {editUser.employee_index || 'Not assigned'}
+                </div>
               </div>
               {editError && (
                 <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" role="alert">
@@ -313,7 +317,7 @@ export default function ManageUsers() {
               <div className="flex gap-3 mt-2">
                 <button onClick={handleSave} disabled={saving}
                   className="flex-1 bg-blue-800 hover:bg-blue-900 text-white py-2.5 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? 'Updating...' : 'Update Login Email'}
                 </button>
                 <button onClick={() => {
                   setEditUser(null)
@@ -377,14 +381,11 @@ export default function ManageUsers() {
                         setEditUser(u)
                         setEditError('')
                         setForm({
-                          full_name: u.full_name || '',
                           email: u.email,
-                          role: u.role || 'student',
-                          employee_index: u.employee_index || '',
                         })
                       }}
                         className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-blue-800 hover:text-white hover:border-blue-800 transition-colors">
-                        Edit
+                        Manage Access
                       </button>
                       <button onClick={() => toggleActive(u.id, u.is_active !== false)}
                         className={`text-xs border rounded-lg px-3 py-1.5 transition-colors ${u.is_active !== false ? 'border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'}`}>

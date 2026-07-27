@@ -1,0 +1,387 @@
+/*
+ * Reference-inspired portal shell.
+ * Kept separate and imported after globals.css so the visual system has a
+ * single, predictable final layer. No component behavior is changed here.
+ */
+
+:root {
+  --portal-ink: #143f3a;
+  --portal-ink-deep: #10332f;
+  --portal-teal: #247c74;
+  --portal-mint: #dcebe6;
+  --portal-canvas: #f1f5f3;
+  --portal-line: #ccd8d3;
+}
+
+.app-body:has(.portal-shell),
+.app-body .portal-shell {
+  background-color: #eef0ef !important;
+  background-image: none !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar.sidebar-bg {
+  color: #fff !important;
+  border: 0 !important;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.035), transparent 45%),
+    var(--portal-ink-deep) !important;
+  box-shadow: 0 18px 44px rgba(12, 44, 39, 0.2) !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar > div:first-child {
+  min-height: 8.25rem !important;
+  padding: 1rem 0.85rem 0.85rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: transparent !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar > div:first-child img {
+  width: 3.15rem !important;
+  height: 3.15rem !important;
+  margin-bottom: 0.2rem !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar > div:first-child .text-white {
+  color: #fff !important;
+  font-size: 0.8rem !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar > div:first-child .text-blue-300\/60 {
+  color: rgba(239, 247, 245, 0.62) !important;
+  font-size: 0.61rem !important;
+}
+
+.app-body.sidebar-theme-rail .portal-sidebar nav {
+  gap: 0.22rem !important;
+  padding: 0.85rem 0.62rem !important;
+}
+
+.app-body.sidebar-theme-rail .portal-sidebar [data-nav] {
+  min-height: 2.55rem !important;
+  padding: 0.62rem 0.72rem !important;
+  color: rgba(245, 250, 249, 0.73) !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font-size: 0.73rem !important;
+  font-weight: 600 !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar .nav-active {
+  color: #173d37 !important;
+  background: #fff !important;
+  box-shadow: 0 7px 18px rgba(0, 0, 0, 0.17) !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar .nav-inactive {
+  color: rgba(245, 250, 249, 0.72) !important;
+  background: transparent !important;
+}
+
+.app-body.sidebar-theme-rail .portal-shell .portal-sidebar .nav-inactive:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.085) !important;
+}
+
+.app-body .portal-sidebar-contact {
+  margin: 0.62rem !important;
+  padding: 0.82rem !important;
+  color: #23473f !important;
+  border: 0 !important;
+  border-radius: 0.9rem !important;
+  background: var(--portal-mint) !important;
+  box-shadow: none !important;
+}
+
+.app-body .portal-sidebar-contact span {
+  color: #183d36 !important;
+}
+
+.app-body .portal-sidebar-contact a {
+  color: #315d54 !important;
+}
+
+.app-body .portal-header {
+  height: 4rem !important;
+  padding-inline: 1.35rem !important;
+  color: #253733 !important;
+  border: 0 !important;
+  border-bottom: 1px solid #dbe4e1 !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 3px 14px rgba(24, 55, 49, 0.045) !important;
+}
+
+.app-body .portal-header-title {
+  position: relative !important;
+  padding-left: 0.72rem !important;
+}
+
+.app-body .portal-header-title::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0.1rem !important;
+  bottom: 0.1rem !important;
+  left: 0 !important;
+  display: block !important;
+  width: 2px !important;
+  border-radius: 999px !important;
+  background: #4c8d88 !important;
+}
+
+.app-body .portal-header-title span,
+.app-body .portal-header > div:first-child > span {
+  color: #223530 !important;
+  font-size: 0.76rem !important;
+}
+
+.app-body .portal-header-title small {
+  color: #75827e !important;
+  font-size: 0.56rem !important;
+}
+
+.app-body .portal-header a,
+.app-body .portal-header button,
+.app-body .portal-header .portal-logout {
+  color: #52635e !important;
+}
+
+.app-body .portal-header > div:last-child > a span,
+.app-body .portal-header > div:last-child > a:not(.relative) span {
+  color: #2b3d38 !important;
+  font-size: 0.73rem !important;
+  font-weight: 650 !important;
+}
+
+.app-body .portal-header .portal-user-avatar {
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  background-color: var(--portal-teal) !important;
+  background-position: center !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  box-shadow: 0 0 0 1px #bdccc8 !important;
+}
+
+.app-body .portal-header .portal-user-avatar.has-avatar-image {
+  background-image: var(--portal-avatar-image) !important;
+}
+
+.app-body .portal-header a.relative > span {
+  top: -0.35rem !important;
+  right: -0.45rem !important;
+  width: auto !important;
+  height: 1.1rem !important;
+  min-width: 1.1rem !important;
+  padding: 0 0.18rem !important;
+  color: #fff !important;
+  border: 1px solid #fff !important;
+  background-color: #176a63 !important;
+  box-shadow: 0 1px 3px rgba(12, 52, 47, 0.24) !important;
+  font-size: 0.62rem !important;
+  font-weight: 750 !important;
+  line-height: 1 !important;
+}
+
+.app-body .portal-header > div:last-child > a.relative > span {
+  color: #fff !important;
+}
+
+.app-body .portal-content,
+.app-body .portal-footer {
+  background: var(--portal-canvas) !important;
+}
+
+.app-body .portal-content > div:not(.fixed) {
+  width: 100% !important;
+  max-width: 96rem !important;
+  min-height: calc(100vh - 8rem) !important;
+  margin: 0 auto !important;
+  padding: clamp(1.2rem, 2.35vw, 2.2rem) clamp(1.1rem, 2.5vw, 2.35rem) 2.5rem !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-body .portal-content h1 {
+  color: #172622 !important;
+  font-size: clamp(1.75rem, 2.35vw, 2.15rem) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.app-body .portal-content h1 + p {
+  color: #687670 !important;
+  font-size: 0.83rem !important;
+}
+
+.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4),
+.app-body .portal-content > div:not(.fixed) section.bg-white,
+.app-body .portal-content .portal-action-card {
+  border: 1px solid #b9c9c3 !important;
+  border-radius: 1rem !important;
+  background: #fff !important;
+  box-shadow: 0 10px 26px rgba(25, 55, 48, 0.105) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4 {
+  min-height: 6.25rem !important;
+  border: 1px solid #b9c9c3 !important;
+  border-radius: 1rem !important;
+  background: #fff !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-blue-400,
+.app-body .portal-content div.bg-white.border-l-4.border-l-blue-500 {
+  box-shadow: inset 0 3px 0 #3182a8, 0 8px 22px rgba(25, 55, 48, 0.06) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-indigo-400 {
+  box-shadow: inset 0 3px 0 #5c6fba, 0 8px 22px rgba(25, 55, 48, 0.06) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-violet-400 {
+  box-shadow: inset 0 3px 0 #8562ad, 0 8px 22px rgba(25, 55, 48, 0.06) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-amber-400 {
+  box-shadow: inset 0 3px 0 #d58a20, 0 8px 22px rgba(25, 55, 48, 0.06) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-emerald-400,
+.app-body .portal-content div.bg-white.border-l-4.border-l-green-500 {
+  box-shadow: inset 0 3px 0 #339267, 0 8px 22px rgba(25, 55, 48, 0.06) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-red-400 {
+  box-shadow: inset 0 3px 0 #cf6267, 0 8px 22px rgba(25, 55, 48, 0.06) !important;
+}
+
+/* Keep dashboard overview metrics informative but visually restrained. */
+.app-body .portal-content div.bg-white.border-l-4 {
+  border-color: #d3ddd9 !important;
+  background: #fff !important;
+  box-shadow: 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-blue-400,
+.app-body .portal-content div.bg-white.border-l-4.border-l-blue-500 {
+  background: #fff !important;
+  box-shadow: inset 0 2px 0 rgba(49, 130, 168, 0.58), 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-indigo-400 {
+  background: #fff !important;
+  box-shadow: inset 0 2px 0 rgba(92, 111, 186, 0.55), 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-violet-400 {
+  background: #fff !important;
+  box-shadow: inset 0 2px 0 rgba(133, 98, 173, 0.55), 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-amber-400 {
+  background: #fff !important;
+  box-shadow: inset 0 2px 0 rgba(213, 138, 32, 0.58), 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-emerald-400,
+.app-body .portal-content div.bg-white.border-l-4.border-l-green-500 {
+  background: #fff !important;
+  box-shadow: inset 0 2px 0 rgba(51, 146, 103, 0.58), 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+.app-body .portal-content div.bg-white.border-l-4.border-l-red-400 {
+  background: #fff !important;
+  box-shadow: inset 0 2px 0 rgba(207, 98, 103, 0.58), 0 4px 14px rgba(25, 55, 48, 0.045) !important;
+}
+
+/* Records and data tables carry the main visual emphasis. */
+.app-body .portal-content :is(div, section).bg-white:has(table) {
+  border-color: #b6cbc4 !important;
+  box-shadow:
+    inset 0 3px 0 var(--portal-teal),
+    0 13px 30px rgba(25, 55, 48, 0.11) !important;
+}
+
+.app-body .portal-content input,
+.app-body .portal-content select,
+.app-body .portal-content textarea {
+  border-color: #d1dcd8 !important;
+  border-radius: 0.75rem !important;
+  background: #fff !important;
+}
+
+.app-body .portal-content :is(button, a)[class*="rounded"]:not(.rounded-full) {
+  border-radius: 0.7rem !important;
+}
+
+.app-body .portal-content table thead tr {
+  background: #f0f3f2 !important;
+}
+
+.app-body .portal-content table thead th {
+  color: #586660 !important;
+}
+
+.app-body .portal-content table tbody tr:hover {
+  background: #f5f8f7 !important;
+}
+
+.app-body .portal-content .fixed.inset-0 > div {
+  border-radius: 1rem !important;
+  background: #fff !important;
+  box-shadow: 0 30px 85px rgba(10, 27, 23, 0.28) !important;
+}
+
+@media (min-width: 1024px) {
+  .app-body .portal-sidebar {
+    top: 1rem !important;
+    bottom: 1rem !important;
+    left: 1rem !important;
+    width: 13.25rem !important;
+    height: auto !important;
+    overflow: hidden !important;
+    border-radius: 1.2rem !important;
+  }
+
+  .app-body .portal-frame {
+    min-height: calc(100vh - 2rem) !important;
+    margin: 1rem 1rem 1rem 15.25rem !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 1.25rem !important;
+    background: var(--portal-canvas) !important;
+    box-shadow: 0 18px 48px rgba(22, 46, 40, 0.14) !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .app-body .portal-sidebar {
+    width: min(17rem, 86vw) !important;
+    border-radius: 0 1rem 1rem 0 !important;
+  }
+
+  .app-body .portal-frame {
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-body .portal-header {
+    height: 3.8rem !important;
+    padding-inline: 0.85rem !important;
+  }
+
+  .app-body .portal-content > div:not(.fixed) {
+    min-height: calc(100vh - 6.8rem) !important;
+    padding: 1.1rem 0.8rem 1.8rem !important;
+  }
+}
+
+/* Exact outer workspace surface beneath the two floating panels. */
+body.app-body.sidebar-theme-rail .portal-shell.min-h-screen.flex.bg-gray-50 {
+  background-color: #eef0ef !important;
+  background-image: none !important;
+}

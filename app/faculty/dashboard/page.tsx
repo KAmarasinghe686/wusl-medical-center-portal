@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
 import type { TableRow } from '../../lib/supabase/database.types'
+import { fetchPortalUserCounts } from '../../lib/users/counts'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -29,18 +30,19 @@ export default function FacultyDashboard() {
       const now = new Date()
       const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString()
-      const [approvedRes, monthlyRes, studentsRes, recentRes] = await Promise.all([
+      const { data: { session } } = await supabase.auth.getSession()
+      const [approvedRes, monthlyRes, userCounts, recentRes] = await Promise.all([
         supabase.from('medical_records').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
         supabase.from('medical_records').select('*', { count: 'exact', head: true })
           .eq('status', 'approved').gte('created_at', monthStart).lt('created_at', nextMonth),
-        supabase.from('students').select('*', { count: 'exact', head: true }),
+        fetchPortalUserCounts(session?.access_token),
         supabase.from('medical_records').select('*, students(full_name, index_no, faculty)')
           .eq('status', 'approved').order('created_at', { ascending: false }).limit(5),
       ])
       setStats({
         approved: approvedRes.count || 0,
         approvedThisMonth: monthlyRes.count || 0,
-        total: studentsRes.count || 0,
+        total: userCounts.students,
       })
       setRecords((recentRes.data || []).map(record => ({
         ...record,
@@ -62,7 +64,7 @@ export default function FacultyDashboard() {
         {[
           { label: 'Approved Records', value: stats.approved, border: 'border-l-emerald-400' },
           { label: 'Approved This Month', value: stats.approvedThisMonth, border: 'border-l-amber-400' },
-          { label: 'Total Students', value: stats.total, border: 'border-l-blue-400' },
+          { label: 'Registered Students', value: stats.total, border: 'border-l-blue-400' },
         ].map(s => (
           <div key={s.label} className={`bg-white border border-gray-200 border-l-4 ${s.border} rounded-r-xl p-4 flex flex-col gap-1`}>
             <div className="text-2xl font-bold text-gray-800">{s.value}</div>

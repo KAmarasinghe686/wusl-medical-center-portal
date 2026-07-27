@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
 import type { TableRow } from '../../lib/supabase/database.types'
+import { fetchPortalUserCounts } from '../../lib/users/counts'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -16,17 +17,24 @@ export default function SystemOverview() {
   const [loadError, setLoadError] = useState('')
 
   const fetchData = async () => {
-    const [recordsRes, usersRes, activityRes] = await Promise.all([
-      supabase.from('medical_records').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('audit_logs').select('*').order('performed_at', { ascending: false }),
-    ])
-    const firstError = recordsRes.error || usersRes.error || activityRes.error
-    setSystemStatus(firstError ? 'Degraded' : 'Healthy')
-    setLoadError(firstError?.message || '')
-    setStats({ records: recordsRes.count || 0, users: usersRes.count || 0 })
-    setActivity(activityRes.data || [])
-    setLoading(false)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const [recordsRes, userCounts, activityRes] = await Promise.all([
+        supabase.from('medical_records').select('*', { count: 'exact', head: true }),
+        fetchPortalUserCounts(session?.access_token),
+        supabase.from('audit_logs').select('*').order('performed_at', { ascending: false }),
+      ])
+      const firstError = recordsRes.error || activityRes.error
+      setSystemStatus(firstError ? 'Degraded' : 'Healthy')
+      setLoadError(firstError?.message || '')
+      setStats({ records: recordsRes.count || 0, users: userCounts.total })
+      setActivity(activityRes.data || [])
+    } catch (error) {
+      setSystemStatus('Degraded')
+      setLoadError(error instanceof Error ? error.message : 'Unable to load system data.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -36,6 +44,7 @@ export default function SystemOverview() {
       .channel('audit_logs_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'medical_records' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData())
       .subscribe()
 
     return () => {

@@ -103,8 +103,8 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
           <div className="flex items-center gap-3">
             <Link href="/doctor/profile" className="flex items-center gap-2">
               <div
-                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${doctorAvatar ? '' : 'avatar-grad'}`}
-                style={doctorAvatar ? { backgroundImage: `url(${doctorAvatar})` } : undefined}
+                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${doctorAvatar ? 'has-avatar-image' : 'avatar-grad'}`}
+                style={doctorAvatar ? ({ '--portal-avatar-image': `url(${doctorAvatar})` } as React.CSSProperties) : undefined}
               >
                 {!doctorAvatar && (doctorName?.charAt(0) || 'D')}
               </div>

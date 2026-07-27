@@ -9,26 +9,32 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      profiles: {
-        Row: {
-          id: string
-          full_name: string | null
-          role: UserRole
-          employee_index: string | null
-          created_at: string
-        }
-        Insert: {
-          id: string
-          full_name?: string | null
-          role?: UserRole
-          employee_index?: string | null
-          created_at?: string
-        }
-        Update: {
-          full_name?: string | null
-          role?: UserRole
-          employee_index?: string | null
-        }
+        profiles: {
+          Row: {
+            id: string
+            full_name: string | null
+            role: UserRole
+            employee_index: string | null
+            contact_no: string | null
+            address: string | null
+            created_at: string
+          }
+          Insert: {
+            id: string
+            full_name?: string | null
+            role?: UserRole
+            employee_index?: string | null
+            contact_no?: string | null
+            address?: string | null
+            created_at?: string
+          }
+          Update: {
+            full_name?: string | null
+            role?: UserRole
+            employee_index?: string | null
+            contact_no?: string | null
+            address?: string | null
+          }
         Relationships: []
       }
       students: {
@@ -40,9 +46,10 @@ export type Database = {
           faculty: string | null
           academic_year: string | null
           dob: string | null
-          gender: string | null
-          contact_no: string | null
-          created_at: string
+            gender: string | null
+            contact_no: string | null
+            address: string | null
+            created_at: string
         }
         Insert: {
           student_id?: number
@@ -52,9 +59,10 @@ export type Database = {
           faculty?: string | null
           academic_year?: string | null
           dob?: string | null
-          gender?: string | null
-          contact_no?: string | null
-          created_at?: string
+            gender?: string | null
+            contact_no?: string | null
+            address?: string | null
+            created_at?: string
         }
         Update: {
           user_id?: string | null
@@ -63,9 +71,10 @@ export type Database = {
           faculty?: string | null
           academic_year?: string | null
           dob?: string | null
-          gender?: string | null
-          contact_no?: string | null
-        }
+            gender?: string | null
+            contact_no?: string | null
+            address?: string | null
+          }
         Relationships: [
           {
             foreignKeyName: 'students_user_id_fkey'

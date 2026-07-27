@@ -2,9 +2,12 @@ import type { User } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { authorizeRequest } from '../../../lib/auth/authorize'
 import type { TableRow } from '../../../lib/supabase/database.types'
-import { cleanText, isEmail, isUserRole } from '../../../lib/validation'
+import { cleanText, isEmail } from '../../../lib/validation'
 
-type ProfileRow = TableRow<'profiles'>
+type ProfileRow = Pick<
+  TableRow<'profiles'>,
+  'id' | 'full_name' | 'role' | 'employee_index' | 'created_at'
+>
 
 type RoleNameRow = {
   user_id: string | null
@@ -158,15 +161,10 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true })
   }
 
-  if (values.action === 'edit') {
-    const fullName = cleanText(values.full_name, 120)
+  if (values.action === 'update-email') {
     const email = cleanText(values.email, 254).toLowerCase()
-    const identifier = cleanText(values.employee_index, 80) || null
-    if (!fullName || !isEmail(email) || !isUserRole(values.role)) {
-      return NextResponse.json({ error: 'A valid name, real email, and role are required.' }, { status: 400 })
-    }
-    if (!identifier) {
-      return NextResponse.json({ error: 'An index or employee ID is required for this role.' }, { status: 400 })
+    if (!isEmail(email)) {
+      return NextResponse.json({ error: 'A valid real login email is required.' }, { status: 400 })
     }
 
     const { data: existingAuth, error: existingAuthError } = await serviceClient.auth.admin.getUserById(values.id)
@@ -174,102 +172,53 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Authentication account not found.' }, { status: 404 })
     }
 
-    const { data: existingProfile, error: existingProfileError } = await serviceClient
-      .from('profiles')
-      .select('role')
-      .eq('id', values.id)
-      .maybeSingle()
-    if (existingProfileError) {
+    const oldEmail = existingAuth.user.email || ''
+    const emailChanged = oldEmail.toLowerCase() !== email
+    if (!emailChanged) {
+      return NextResponse.json({ success: true, email_changed: false })
+    }
+
+    let authUsers: User[]
+    try {
+      authUsers = await listAllAuthUsers(serviceClient)
+    } catch {
       return NextResponse.json(
-        { error: `Unable to read the user profile: ${existingProfileError.message}` },
+        { error: 'Unable to verify whether the login email is available. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    const emailOwner = authUsers.find(user =>
+      user.id !== values.id && user.email?.toLowerCase() === email
+    )
+    if (emailOwner) {
+      return NextResponse.json(
+        {
+          error: 'This email is already the login email for another account. Use a different email or manage the existing account instead.',
+          code: 'EMAIL_ALREADY_IN_USE',
+        },
+        { status: 409 }
+      )
+    }
+
+    const { error: emailError } = await serviceClient.auth.admin.updateUserById(values.id, { email })
+    if (emailError) {
+      return NextResponse.json(
+        { error: `Unable to change the login email: ${emailError.message}` },
         { status: 400 }
       )
     }
-    if (!existingProfile) {
-      return NextResponse.json({ error: 'User profile not found.' }, { status: 404 })
-    }
 
-    const oldEmail = existingAuth.user.email || ''
-    const emailChanged = oldEmail.toLowerCase() !== email
-    if (emailChanged) {
-      let authUsers: User[]
-      try {
-        authUsers = await listAllAuthUsers(serviceClient)
-      } catch {
-        return NextResponse.json(
-          { error: 'Unable to verify whether the login email is available. Please try again.' },
-          { status: 500 }
-        )
-      }
+    return NextResponse.json({ success: true, email_changed: true })
+  }
 
-      const emailOwner = authUsers.find(user =>
-        user.id !== values.id && user.email?.toLowerCase() === email
-      )
-      if (emailOwner) {
-        return NextResponse.json(
-          {
-            error: 'This email is already the login email for another account. Use a different email or edit the existing account instead.',
-            code: 'EMAIL_ALREADY_IN_USE',
-          },
-          { status: 409 }
-        )
-      }
-
-      const { error: emailError } = await serviceClient.auth.admin.updateUserById(values.id, { email })
-      if (emailError) {
-        return NextResponse.json(
-          { error: `Unable to change the login email: ${emailError.message}` },
-          { status: 400 }
-        )
-      }
-    }
-
-    const isSingleProfileEdit =
-      existingProfile.role === values.role &&
-      (values.role === 'admin' || values.role === 'faculty' || values.role === 'worker')
-
-    if (isSingleProfileEdit) {
-      const { error: profileError } = await serviceClient
-        .from('profiles')
-        .update({ full_name: fullName, employee_index: identifier })
-        .eq('id', values.id)
-
-      if (profileError) {
-        if (emailChanged && oldEmail) {
-          await serviceClient.auth.admin.updateUserById(values.id, { email: oldEmail })
-        }
-        return NextResponse.json(
-          { error: `Unable to update the user profile: ${profileError.message}` },
-          { status: 400 }
-        )
-      }
-
-      return NextResponse.json({ success: true, email_changed: emailChanged })
-    }
-
-    const { error } = await serviceClient.rpc('admin_update_user_profile', {
-      p_actor_id: authorization.user.id,
-      p_user_id: values.id,
-      p_full_name: fullName,
-      p_role: values.role,
-      p_identifier: identifier,
-    })
-    if (error) {
-      if (emailChanged && oldEmail) {
-        await serviceClient.auth.admin.updateUserById(values.id, { email: oldEmail })
-      }
-      const migrationMissing = error.code === 'PGRST202' || error.message.includes('admin_update_user_profile')
-      return NextResponse.json(
-        {
-          error: migrationMissing
-            ? 'The required database migration is not applied. Apply the Supabase migrations, then try again.'
-            : `Unable to update the user profile: ${error.message}`,
-        },
-        { status: migrationMissing ? 503 : 400 }
-      )
-    }
-
-    return NextResponse.json({ success: true, email_changed: emailChanged })
+  if (values.action === 'edit') {
+    return NextResponse.json(
+      {
+        error: 'Institutional name, role, and ID are read-only. Update them through the authorized Student Registry or HR workflow.',
+      },
+      { status: 403 }
+    )
   }
 
   return NextResponse.json({ error: 'Unsupported action.' }, { status: 400 })

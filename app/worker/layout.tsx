@@ -102,8 +102,8 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
           <div className="flex items-center gap-3">
             <Link href="/worker/profile" className="flex items-center gap-2">
               <div
-                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${workerAvatar ? '' : 'avatar-grad'}`}
-                style={workerAvatar ? { backgroundImage: `url(${workerAvatar})` } : undefined}
+                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${workerAvatar ? 'has-avatar-image' : 'avatar-grad'}`}
+                style={workerAvatar ? ({ '--portal-avatar-image': `url(${workerAvatar})` } as React.CSSProperties) : undefined}
               >
                 {!workerAvatar && (workerName?.charAt(0) || 'W')}
               </div>

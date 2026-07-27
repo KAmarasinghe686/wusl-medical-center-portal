@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
 import type { TableRow } from '../../lib/supabase/database.types'
+import { fetchPortalUserCounts } from '../../lib/users/counts'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -18,9 +19,13 @@ export default function StudentSearch() {
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const { data, count } = await supabase.from('students').select('*, medical_records(count)', { count: 'exact' })
+      const { data: { session } } = await supabase.auth.getSession()
+      const [{ data }, userCounts] = await Promise.all([
+        supabase.from('students').select('*, medical_records(count)'),
+        fetchPortalUserCounts(session?.access_token),
+      ])
       setStudents((data || []) as StudentSearchRow[])
-      setStats({ total: count || 0 })
+      setStats({ total: userCounts.students })
       setLoading(false)
     }
     void fetchStudents()
@@ -50,7 +55,7 @@ export default function StudentSearch() {
 
       <div className="grid grid-cols-2 gap-4 mb-8">
           {[
-            { label: 'Total Students', value: stats.total, border: 'border-l-blue-400' },
+            { label: 'Registered Students', value: stats.total, border: 'border-l-blue-400' },
             { label: 'Search Results', value: filtered.length, border: 'border-l-violet-400' },
           ].map(s => (
             <div key={s.label} className={`bg-white border border-gray-100 border-l-4 ${s.border} rounded-r-2xl p-4 flex flex-col gap-1 shadow-sm`}>

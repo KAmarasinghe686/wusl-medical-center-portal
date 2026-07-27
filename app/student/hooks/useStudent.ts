@@ -10,10 +10,11 @@ type Student = {
   full_name: string
   index_no: string
   faculty: string | null
-  academic_year: number | null
+  academic_year: string | null
   dob: string | null
   gender: string | null
   contact_no: string | null
+  address: string | null
 }
 
 async function loadStudent() {

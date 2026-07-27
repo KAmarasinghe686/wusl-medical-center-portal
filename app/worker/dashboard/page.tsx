@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
+import { fetchPortalUserCounts } from '../../lib/users/counts'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -9,7 +10,7 @@ type Visit = { visit_id: number; visit_date: string; reason: string; doctors: { 
 
 export default function WorkerDashboard() {
   const [visits, setVisits] = useState<Visit[]>([])
-  const [stats, setStats] = useState({ thisMonth: 0, doctorsAvailable: 0 })
+  const [stats, setStats] = useState({ thisMonth: 0, totalDoctors: 0, doctorsAvailable: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,14 +20,16 @@ export default function WorkerDashboard() {
       const now = new Date()
       const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString().slice(0, 10)
       const nextMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10)
-      const [recentResult, monthResult, doctorsResult] = await Promise.all([
+      const { data: { session } } = await supabase.auth.getSession()
+      const [recentResult, monthResult, userCounts, doctorsResult] = await Promise.all([
         supabase.from('medical_visits')
           .select('visit_id, visit_date, reason, doctors(full_name)')
           .eq('user_id', user.id).order('visit_date', { ascending: false }).limit(5),
         supabase.from('medical_visits').select('*', { count: 'exact', head: true })
           .eq('user_id', user.id).gte('visit_date', monthStart).lt('visit_date', nextMonth),
+        fetchPortalUserCounts(session?.access_token),
         supabase.from('doctors')
-          .select('doctor_id, doctor_availability!inner(is_available)', { count: 'exact', head: true })
+          .select('doctor_id, doctor_availability!inner(is_available)')
           .eq('doctor_availability.is_available', true),
       ])
       const visitsData = recentResult.data
@@ -35,7 +38,12 @@ export default function WorkerDashboard() {
         doctors: Array.isArray(visit.doctors) ? visit.doctors[0] || null : visit.doctors,
       }))
       setVisits(normalizedVisits)
-      setStats({ thisMonth: monthResult.count || 0, doctorsAvailable: doctorsResult.count || 0 })
+      const availableDoctorIds = new Set((doctorsResult.data || []).map(doctor => doctor.doctor_id))
+      setStats({
+        thisMonth: monthResult.count || 0,
+        totalDoctors: userCounts.doctors,
+        doctorsAvailable: availableDoctorIds.size,
+      })
       setLoading(false)
     }
     fetchData()
@@ -48,10 +56,11 @@ export default function WorkerDashboard() {
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Dashboard</h1>
       <p className="text-sm text-gray-500 mb-6">Welcome back</p>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {[
           { label: 'Visits This Month', value: stats.thisMonth, border: 'border-l-blue-400' },
-          { label: 'Doctors Available', value: stats.doctorsAvailable, border: 'border-l-emerald-400' },
+          { label: 'Registered Doctors', value: stats.totalDoctors, border: 'border-l-violet-400' },
+          { label: 'Doctors Offering Slots', value: stats.doctorsAvailable, border: 'border-l-emerald-400' },
         ].map(s => (
           <div key={s.label} className={`bg-white border border-gray-200 border-l-4 ${s.border} rounded-r-xl p-4 flex flex-col gap-1`}>
             <div className="text-2xl font-bold text-gray-800">{s.value}</div>

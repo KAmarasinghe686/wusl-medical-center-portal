@@ -34,7 +34,7 @@ export default function DoctorDashboard() {
 
     const fetchData = async () => {
       const today = new Date().toISOString().slice(0, 10)
-      const [recordsResult, assignedResult, pendingResult, approvedResult, visitsResult] = await Promise.all([
+      const [recordsResult, statsResult, visitsResult] = await Promise.all([
         supabase
           .from('medical_records')
           .select('record_id, purpose, issue_date, status, students(full_name, index_no)')
@@ -43,17 +43,8 @@ export default function DoctorDashboard() {
           .limit(5),
         supabase
           .from('medical_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('reviewed_by', doctorId),
-        supabase
-          .from('medical_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending'),
-        supabase
-          .from('medical_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('reviewed_by', doctorId)
-          .eq('status', 'approved'),
+          .select('status')
+          .or(`status.eq.pending,reviewed_by.eq.${doctorId}`),
         supabase
           .from('medical_visits')
           .select('*', { count: 'exact', head: true })
@@ -63,7 +54,7 @@ export default function DoctorDashboard() {
       const { data, error } = recordsResult
 
       if (!active) return
-      const dashboardError = error || assignedResult.error || pendingResult.error || approvedResult.error || visitsResult.error
+      const dashboardError = error || statsResult.error || visitsResult.error
       if (dashboardError) {
         setRecordsError(dashboardError.message || 'Unable to load dashboard statistics.')
         return
@@ -75,10 +66,11 @@ export default function DoctorDashboard() {
           students: Array.isArray(record.students) ? record.students[0] : record.students,
         }))
         setRecords(normalizedRecords)
+        const assignedRecords = statsResult.data || []
         setStats({
-          assigned: assignedResult.count || 0,
-          pending: pendingResult.count || 0,
-          approved: approvedResult.count || 0,
+          assigned: assignedRecords.length,
+          pending: assignedRecords.filter(record => record.status === 'pending').length,
+          approved: assignedRecords.filter(record => record.status === 'approved').length,
           visitsToday: visitsResult.count || 0,
         })
         setRecordsError('')

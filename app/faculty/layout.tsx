@@ -126,8 +126,8 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
             </Link>
             <div className="flex items-center gap-2">
               <div
-                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${facultyAvatar ? '' : 'avatar-grad'}`}
-                style={facultyAvatar ? { backgroundImage: `url(${facultyAvatar})` } : undefined}
+                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${facultyAvatar ? 'has-avatar-image' : 'avatar-grad'}`}
+                style={facultyAvatar ? ({ '--portal-avatar-image': `url(${facultyAvatar})` } as React.CSSProperties) : undefined}
               >
                 {!facultyAvatar && (facultyName?.charAt(0) || 'F')}
               </div>

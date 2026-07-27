@@ -7,11 +7,12 @@ export default function StudentProfile() {
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarMessage, setAvatarMessage] = useState('')
   const [avatarError, setAvatarError] = useState('')
-  const [formData, setFormData] = useState({ full_name: '', contact_no: '', faculty: '', dob: '' })
+  const [formData, setFormData] = useState({ contact_no: '', address: '' })
 
   useEffect(() => {
     const loadAvatar = async () => {
@@ -24,15 +25,14 @@ export default function StudentProfile() {
 
   const handleToggleEditing = () => {
     setSuccess(false)
+    setSaveError('')
     if (editing) {
       setEditing(false)
       return
     }
     setFormData({
-      full_name: student?.full_name || '',
       contact_no: student?.contact_no || '',
-      faculty: student?.faculty || '',
-      dob: student?.dob || '',
+      address: student?.address || '',
     })
     setEditing(true)
   }
@@ -98,11 +98,32 @@ export default function StudentProfile() {
 
   const handleSave = async () => {
     if (!student) return
+    const contactNo = formData.contact_no.trim()
+    const address = formData.address.trim()
+    if (contactNo.length > 30) {
+      setSaveError('Contact number must be 30 characters or fewer.')
+      return
+    }
+    if (address.length > 500) {
+      setSaveError('Address must be 500 characters or fewer.')
+      return
+    }
+
     setSaving(true)
     setSuccess(false)
-    const { error } = await supabase.from('students').update(formData).eq('student_id', student.student_id)
+    setSaveError('')
+    const { error } = await supabase
+      .from('students')
+      .update({ contact_no: contactNo || null, address: address || null })
+      .eq('student_id', student.student_id)
     setSaving(false)
-    if (error) { alert('Error saving: ' + error.message) } else { await refetch(); setSuccess(true); setEditing(false) }
+    if (error) {
+      setSaveError(error.message)
+    } else {
+      await refetch()
+      setSuccess(true)
+      setEditing(false)
+    }
   }
 
   if (loading) return <div className="p-8 text-sm text-gray-400">Loading...</div>
@@ -113,15 +134,16 @@ export default function StudentProfile() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Profile</h1>
-          <p className="text-sm text-gray-500">Manage your institutional identity.</p>
+          <p className="text-sm text-gray-500">View your institutional identity and manage contact details.</p>
         </div>
         <button onClick={handleToggleEditing}
           className="border border-blue-800 px-4 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-800 hover:text-white transition-colors rounded-lg">
-          {editing ? 'Cancel' : 'Edit Profile'}
+          {editing ? 'Cancel' : 'Edit Contact Details'}
         </button>
       </div>
 
       {success && <div className="mb-4 text-xs text-emerald-600 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2">Profile saved successfully.</div>}
+      {saveError && <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">{saveError}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
@@ -159,25 +181,41 @@ export default function StudentProfile() {
           {avatarError && <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">{avatarError}</div>}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[
-              { label: 'Full Name', key: 'full_name', type: 'input', value: student.full_name },
+              { label: 'Full Name', key: null, value: student.full_name },
               { label: 'Student ID', key: null, value: student.index_no },
-              { label: 'Faculty', key: 'faculty', type: 'input', value: student.faculty },
+              { label: 'Faculty', key: null, value: student.faculty },
               { label: 'Gender', key: null, value: student.gender },
-              { label: 'Date of Birth', key: 'dob', type: 'date', value: student.dob },
+              { label: 'Date of Birth', key: null, value: student.dob },
               { label: 'Contact Number', key: 'contact_no', type: 'input', value: student.contact_no },
+              { label: 'Address', key: 'address', type: 'textarea', value: student.address, wide: true },
             ].map(field => (
-              <div key={field.label} className="flex flex-col gap-1">
+              <div key={field.label} className={`flex flex-col gap-1 ${field.wide ? 'lg:col-span-2' : ''}`}>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{field.label}</label>
                 {editing && field.key ? (
-                  <input type={field.type === 'date' ? 'date' : 'text'} value={formData[field.key as keyof typeof formData]}
-                    onChange={e => setFormData({ ...formData, [field.key!]: e.target.value })}
-                    className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800" />
+                  field.type === 'textarea' ? (
+                    <textarea
+                      rows={3}
+                      value={formData[field.key as keyof typeof formData]}
+                      onChange={e => setFormData({ ...formData, [field.key!]: e.target.value })}
+                      className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
+                    />
+                  ) : (
+                    <input
+                      type="tel"
+                      value={formData[field.key as keyof typeof formData]}
+                      onChange={e => setFormData({ ...formData, [field.key!]: e.target.value })}
+                      className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
+                    />
+                  )
                 ) : (
                   <div className="text-sm font-medium text-gray-800">{field.value || 'N/A'}</div>
                 )}
               </div>
             ))}
           </div>
+          <p className="mt-5 text-xs text-gray-400">
+            Institutional identity details can only be changed by an administrator.
+          </p>
           {editing && (
             <button onClick={handleSave} disabled={saving}
               className="mt-6 bg-blue-800 hover:bg-blue-900 text-white px-6 py-2.5 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">

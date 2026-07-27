@@ -102,8 +102,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex items-center gap-3">
             <Link href="/admin/profile" className="flex items-center gap-2">
               <div
-                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${adminAvatar ? '' : 'avatar-grad'}`}
-                style={adminAvatar ? { backgroundImage: `url(${adminAvatar})` } : undefined}
+                className={`portal-user-avatar w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${adminAvatar ? 'has-avatar-image' : 'avatar-grad'}`}
+                style={adminAvatar ? ({ '--portal-avatar-image': `url(${adminAvatar})` } as React.CSSProperties) : undefined}
               >
                 {!adminAvatar && (adminName?.charAt(0) || 'A')}
               </div>

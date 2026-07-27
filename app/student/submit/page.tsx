@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useStudent } from '../hooks/useStudent'
 import { MAX_MEDICAL_FILES, validateMedicalFile } from '../../lib/validation'
 
@@ -35,6 +36,16 @@ export default function SubmitMedicalRecord() {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const academicYear = student?.academic_year
+    ? /^\d+$/.test(student.academic_year) ? `Year ${student.academic_year}` : student.academic_year
+    : 'N/A'
+  const dateOfBirth = student?.dob
+    ? new Date(`${student.dob}T00:00:00`).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'N/A'
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files) setFiles(Array.from(e.target.files)) }
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index))
@@ -104,15 +115,33 @@ export default function SubmitMedicalRecord() {
 
       {/* Student Information Card - Full Width */}
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 mb-6">
-        <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Student Information</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[['Student Name', student?.full_name], ['Student ID', student?.index_no], ['Faculty', student?.faculty], ['Academic Year', `Year ${student?.academic_year}`]].map(([k, v]) => (
+        <div className="mb-4">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student Information</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
+          {[
+            ['Student Name', student?.full_name],
+            ['Student ID', student?.index_no],
+            ['Faculty', student?.faculty],
+            ['Academic Year', academicYear],
+            ['Date of Birth', dateOfBirth],
+            ['Contact Number', student?.contact_no],
+          ].map(([k, v]) => (
             <div key={k}>
               <div className="text-xs text-gray-400 uppercase font-semibold mb-1">{k}</div>
               <div className="text-sm font-medium text-gray-800">{v || 'N/A'}</div>
             </div>
           ))}
         </div>
+        {!student?.contact_no && (
+          <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-amber-700">
+            Add a contact number in your{' '}
+            <Link href="/student/profile" className="font-semibold underline underline-offset-2">
+              profile
+            </Link>
+            {' '}so the Medical Centre can contact you about this submission.
+          </div>
+        )}
       </div>
 
       {/* Two Column Layout - Form Left, Documents Right */}
@@ -183,7 +212,7 @@ export default function SubmitMedicalRecord() {
               </svg>
               <p className="text-sm text-gray-500 mb-1 font-medium">Drag and drop or click to upload</p>
               <p className="text-xs text-gray-400 mb-4">PDF, JPG, PNG (Max 10MB each)</p>
-              <span className="border border-blue-800 text-blue-800 px-5 py-2 text-xs font-semibold rounded-lg hover:bg-blue-800 hover:text-white transition-colors">Browse Files</span>
+              <span className="medical-file-browse border border-blue-800 text-blue-800 px-5 py-2 text-xs font-semibold rounded-lg transition-colors">Browse Files</span>
               <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={handleFileChange} />
             </label>
             

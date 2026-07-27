@@ -12,6 +12,8 @@ type ProfileRecord = {
   full_name: string | null
   role: string
   employee_index: string | null
+  contact_no: string | null
+  address: string | null
 }
 
 type DoctorRecord = {
@@ -27,9 +29,9 @@ const roleLabels: Record<PortalRole, string> = {
 }
 
 const profileDescriptions: Record<PortalRole, string> = {
-  admin: 'Manage your administrator identity.',
-  doctor: 'Manage your professional and clinical identity.',
-  worker: 'Manage your university staff identity.',
+  admin: 'View your administrator identity and account information.',
+  doctor: 'View your professional and clinical identity.',
+  worker: 'View your university staff identity and manage contact details.',
 }
 
 export default function PortalProfile({ role }: { role: PortalRole }) {
@@ -37,9 +39,8 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
   const [doctor, setDoctor] = useState<DoctorRecord | null>(null)
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [employeeIndex, setEmployeeIndex] = useState('')
-  const [specialisation, setSpecialisation] = useState('')
+  const [contactNo, setContactNo] = useState('')
+  const [address, setAddress] = useState('')
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -67,8 +68,7 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
         .single()
 
       if (!active) return
-      const canUseStaffProfile = role === 'worker' && profileData?.role === 'admin' && Boolean(profileData.employee_index)
-      if (profileError || !profileData || (profileData.role !== role && !canUseStaffProfile)) {
+      if (profileError || !profileData || profileData.role !== role) {
         setError('Unable to load this profile.')
         setLoading(false)
         return
@@ -85,14 +85,12 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
       }
 
       if (!active) return
-      const name = doctorData?.full_name || profileData.full_name || ''
       setProfile(profileData)
       setDoctor(doctorData)
       setEmail(user.email || '')
       setAvatarUrl(user.user_metadata?.profile_avatar_url || user.user_metadata?.avatar_url || '')
-      setFullName(name)
-      setEmployeeIndex(profileData.employee_index || '')
-      setSpecialisation(doctorData?.specialisation || '')
+      setContactNo(profileData.contact_no || '')
+      setAddress(profileData.address || '')
       setLoading(false)
     }
 
@@ -104,23 +102,23 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
     setMessage('')
     setError('')
     if (editing) {
-      setFullName(doctor?.full_name || profile?.full_name || '')
-      setEmployeeIndex(profile?.employee_index || '')
-      setSpecialisation(doctor?.specialisation || '')
+      setContactNo(profile?.contact_no || '')
+      setAddress(profile?.address || '')
     }
     setEditing(current => !current)
   }
 
   const handleSave = async () => {
-    if (!profile) return
+    if (!profile || role !== 'worker') return
 
-    const nextName = fullName.trim()
-    if (!nextName) {
-      setError('Full name is required.')
+    const nextContactNo = contactNo.trim()
+    const nextAddress = address.trim()
+    if (nextContactNo.length > 30) {
+      setError('Contact number must be 30 characters or fewer.')
       return
     }
-    if (role === 'admin' && !employeeIndex.trim()) {
-      setError('Employee ID is required to access the Staff portal.')
+    if (nextAddress.length > 500) {
+      setError('Address must be 500 characters or fewer.')
       return
     }
 
@@ -128,26 +126,9 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
     setMessage('')
     setError('')
 
-    if (role === 'doctor') {
-      const { error: doctorError } = await supabase
-        .from('doctors')
-        .update({ full_name: nextName, specialisation: specialisation.trim() || null })
-        .eq('user_id', profile.id)
-
-      if (doctorError) {
-        setError(doctorError.message)
-        setSaving(false)
-        return
-      }
-    }
-
-    const profileUpdate = role === 'admin'
-      ? { full_name: nextName, employee_index: employeeIndex.trim() }
-      : { full_name: nextName }
-
     const { error: profileError } = await supabase
       .from('profiles')
-      .update(profileUpdate)
+      .update({ contact_no: nextContactNo || null, address: nextAddress || null })
       .eq('id', profile.id)
 
     if (profileError) {
@@ -158,15 +139,12 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
 
     setProfile(current => current ? {
       ...current,
-      full_name: nextName,
-      employee_index: role === 'admin' ? employeeIndex.trim() : current.employee_index,
+      contact_no: nextContactNo || null,
+      address: nextAddress || null,
     } : current)
-    setDoctor(current => current ? { ...current, full_name: nextName, specialisation: specialisation.trim() || null } : current)
-    setFullName(nextName)
     setSaving(false)
     setEditing(false)
-    setMessage('Profile saved successfully.')
-    window.dispatchEvent(new CustomEvent('profile-name-updated', { detail: nextName }))
+    setMessage('Contact details saved successfully.')
   }
 
   const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -239,9 +217,11 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Profile</h1>
           <p className="text-sm text-gray-500">{profileDescriptions[role]}</p>
         </div>
-        <button onClick={handleToggleEditing} className="border border-blue-800 px-4 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-800 hover:text-white transition-colors rounded-lg">
-          {editing ? 'Cancel' : 'Edit Profile'}
-        </button>
+        {role === 'worker' && (
+          <button onClick={handleToggleEditing} className="border border-blue-800 px-4 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-800 hover:text-white transition-colors rounded-lg">
+            {editing ? 'Cancel' : 'Edit Contact Details'}
+          </button>
+        )}
       </div>
 
       {message && <div className="mb-4 text-xs text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2">{message}</div>}
@@ -283,12 +263,8 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
 
           <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${role === 'doctor' ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Full Name</label>
-              {editing ? (
-                <input value={fullName} onChange={event => setFullName(event.target.value)} className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800" />
-              ) : (
-                <div className="text-sm font-medium text-gray-800">{displayName}</div>
-              )}
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Full Name</span>
+              <div className="text-sm font-medium text-gray-800">{displayName}</div>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -298,12 +274,8 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
 
             {role === 'admin' && (
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Employee ID</label>
-                {editing ? (
-                  <input value={employeeIndex} onChange={event => setEmployeeIndex(event.target.value)} placeholder="e.g. WUSL/EMP/001" className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800" />
-                ) : (
-                  <div className="text-sm font-medium text-gray-800">{profile.employee_index || 'Not assigned'}</div>
-                )}
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Employee ID</span>
+                <div className="text-sm font-medium text-gray-800">{profile.employee_index || 'Not assigned'}</div>
               </div>
             )}
 
@@ -316,12 +288,8 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
 
             {role === 'doctor' && (
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Specialisation</label>
-                {editing ? (
-                  <input value={specialisation} onChange={event => setSpecialisation(event.target.value)} className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800" />
-                ) : (
-                  <div className="text-sm font-medium text-gray-800">{doctor?.specialisation || 'N/A'}</div>
-                )}
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Specialisation</span>
+                <div className="text-sm font-medium text-gray-800">{doctor?.specialisation || 'N/A'}</div>
               </div>
             )}
 
@@ -331,6 +299,38 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
                 <div className="text-sm font-medium text-gray-800">{doctor.doctor_id}</div>
               </div>
             )}
+
+            {role === 'worker' && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Number</label>
+                  {editing ? (
+                    <input
+                      type="tel"
+                      value={contactNo}
+                      onChange={event => setContactNo(event.target.value)}
+                      className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">{profile.contact_no || 'N/A'}</div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1 sm:col-span-2 xl:col-span-3">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Address</label>
+                  {editing ? (
+                    <textarea
+                      rows={3}
+                      value={address}
+                      onChange={event => setAddress(event.target.value)}
+                      className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">{profile.address || 'N/A'}</div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {editing && (
@@ -338,6 +338,9 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           )}
+          <p className="mt-5 text-xs text-gray-400">
+            Institutional identity details can only be changed by an administrator.
+          </p>
         </section>
       </div>
     </div>

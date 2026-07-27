@@ -3,35 +3,58 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
 import type { TableRow } from '../../lib/supabase/database.types'
+import { EMPTY_PORTAL_USER_COUNTS, fetchPortalUserCounts } from '../../lib/users/counts'
 
 const supabase = createBrowserSupabaseClient()
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ total: 0, students: 0, doctors: 0, workers: 0, faculty: 0 })
+  const [stats, setStats] = useState(EMPTY_PORTAL_USER_COUNTS)
   const [activity, setActivity] = useState<TableRow<'audit_logs'>[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
+    let active = true
+
     const fetchData = async () => {
-      const [totalRes, studentsRes, doctorsRes, workersRes, facultyRes, activityRes] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'student'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'doctor'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'worker'),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'faculty'),
-        supabase.from('audit_logs').select('*').order('performed_at', { ascending: false }).limit(5),
-      ])
-      setStats({
-        total: totalRes.count || 0,
-        students: studentsRes.count || 0,
-        doctors: doctorsRes.count || 0,
-        workers: workersRes.count || 0,
-        faculty: facultyRes.count || 0,
-      })
-      setActivity(activityRes.data || [])
-      setLoading(false)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const [counts, activityRes] = await Promise.all([
+          fetchPortalUserCounts(session?.access_token),
+          supabase.from('audit_logs').select('*').order('performed_at', { ascending: false }).limit(5),
+        ])
+        if (!active) return
+        if (activityRes.error) throw activityRes.error
+        setStats(counts)
+        setActivity(activityRes.data || [])
+        setLoadError('')
+      } catch (error) {
+        if (!active) return
+        setLoadError(error instanceof Error ? error.message : 'Unable to load dashboard data.')
+      } finally {
+        if (active) setLoading(false)
+      }
     }
-    fetchData()
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void fetchData()
+    }
+
+    void fetchData()
+    const channel = supabase
+      .channel('admin-dashboard-live-data')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => { void fetchData() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => { void fetchData() })
+      .subscribe()
+    window.addEventListener('focus', fetchData)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+
+    return () => {
+      active = false
+      window.removeEventListener('focus', fetchData)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+      void supabase.removeChannel(channel)
+    }
   }, [])
 
   if (loading) return <div className="p-8 text-sm text-gray-400">Loading...</div>
@@ -41,13 +64,20 @@ export default function AdminDashboard() {
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Admin Dashboard</h1>
       <p className="text-sm text-gray-500 mb-6">System administration overview.</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      {loadError && (
+        <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">
+          Unable to refresh dashboard counts: {loadError}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
         {[
           { label: 'Total Users', value: stats.total, border: 'border-l-blue-400' },
           { label: 'Students', value: stats.students, border: 'border-l-indigo-400' },
           { label: 'Doctors', value: stats.doctors, border: 'border-l-emerald-400' },
-          { label: 'Staff', value: stats.workers, border: 'border-l-amber-400' },
+          { label: 'Staff', value: stats.staff, border: 'border-l-amber-400' },
           { label: 'Faculty', value: stats.faculty, border: 'border-l-violet-400' },
+          { label: 'Admins', value: stats.admins, border: 'border-l-red-400' },
         ].map(s => (
          <div key={s.label} className={`bg-white border border-gray-200 border-l-4 ${s.border} rounded-r-xl p-4 flex flex-col gap-1`}>
           <div className="text-2xl font-bold text-gray-800">{s.value}</div>

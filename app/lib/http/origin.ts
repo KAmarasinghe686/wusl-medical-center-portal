@@ -7,5 +7,5 @@ export function requestOrigin(request: Request) {
 }
 
 export function passwordSetupCallback(request: Request) {
-  return `${requestOrigin(request)}/auth/callback?next=/reset-password`
+  return `${requestOrigin(request)}/set-password`
 }

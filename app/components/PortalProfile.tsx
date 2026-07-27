@@ -5,7 +5,7 @@ import { createBrowserSupabaseClient } from '../lib/supabase/browser'
 
 const supabase = createBrowserSupabaseClient()
 
-type PortalRole = 'admin' | 'doctor' | 'worker'
+type PortalRole = 'admin' | 'doctor' | 'worker' | 'faculty'
 
 type ProfileRecord = {
   id: string
@@ -13,7 +13,6 @@ type ProfileRecord = {
   role: string
   employee_index: string | null
   contact_no: string | null
-  address: string | null
 }
 
 type DoctorRecord = {
@@ -26,12 +25,14 @@ const roleLabels: Record<PortalRole, string> = {
   admin: 'Administrator',
   doctor: 'Doctor',
   worker: 'Staff',
+  faculty: 'Faculty',
 }
 
 const profileDescriptions: Record<PortalRole, string> = {
-  admin: 'View your administrator identity and account information.',
-  doctor: 'View your professional and clinical identity.',
-  worker: 'View your university staff identity and manage contact details.',
+  admin: 'View your administrator identity and manage your contact number.',
+  doctor: 'View your professional identity and manage your professional contact number.',
+  worker: 'View your university staff identity and manage your contact number.',
+  faculty: 'View your faculty identity and manage your official contact number.',
 }
 
 export default function PortalProfile({ role }: { role: PortalRole }) {
@@ -40,7 +41,6 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [contactNo, setContactNo] = useState('')
-  const [address, setAddress] = useState('')
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -90,7 +90,6 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
       setEmail(user.email || '')
       setAvatarUrl(user.user_metadata?.profile_avatar_url || user.user_metadata?.avatar_url || '')
       setContactNo(profileData.contact_no || '')
-      setAddress(profileData.address || '')
       setLoading(false)
     }
 
@@ -103,22 +102,16 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
     setError('')
     if (editing) {
       setContactNo(profile?.contact_no || '')
-      setAddress(profile?.address || '')
     }
     setEditing(current => !current)
   }
 
   const handleSave = async () => {
-    if (!profile || role !== 'worker') return
+    if (!profile) return
 
     const nextContactNo = contactNo.trim()
-    const nextAddress = address.trim()
     if (nextContactNo.length > 30) {
       setError('Contact number must be 30 characters or fewer.')
-      return
-    }
-    if (nextAddress.length > 500) {
-      setError('Address must be 500 characters or fewer.')
       return
     }
 
@@ -128,7 +121,7 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
 
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ contact_no: nextContactNo || null, address: nextAddress || null })
+      .update({ contact_no: nextContactNo || null })
       .eq('id', profile.id)
 
     if (profileError) {
@@ -140,7 +133,6 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
     setProfile(current => current ? {
       ...current,
       contact_no: nextContactNo || null,
-      address: nextAddress || null,
     } : current)
     setSaving(false)
     setEditing(false)
@@ -217,17 +209,15 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Profile</h1>
           <p className="text-sm text-gray-500">{profileDescriptions[role]}</p>
         </div>
-        {role === 'worker' && (
-          <button onClick={handleToggleEditing} className="border border-blue-800 px-4 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-800 hover:text-white transition-colors rounded-lg">
-            {editing ? 'Cancel' : 'Edit Contact Details'}
-          </button>
-        )}
+        <button onClick={handleToggleEditing} className="border border-blue-800 px-4 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-800 hover:text-white transition-colors rounded-lg">
+          {editing ? 'Cancel' : 'Edit Contact Details'}
+        </button>
       </div>
 
       {message && <div className="mb-4 text-xs text-emerald-700 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2">{message}</div>}
       {error && <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">{error}</div>}
 
-      <div className="max-w-5xl">
+      <div className="w-full">
         <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <div className="profile-summary flex flex-col gap-4 mb-6 pb-6 border-b border-gray-100 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-4">
@@ -261,30 +251,21 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
             </div>
           </div>
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 gap-5 ${role === 'doctor' ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             <div className="flex flex-col gap-1">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Full Name</span>
               <div className="text-sm font-medium text-gray-800">{displayName}</div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Email Address</span>
-              <div className="text-sm font-medium text-gray-800 break-all">{email || 'N/A'}</div>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Role</span>
+              <div className="text-sm font-medium text-gray-800">{roleLabels[role]}</div>
             </div>
 
-            {role === 'admin' && (
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Employee ID</span>
-                <div className="text-sm font-medium text-gray-800">{profile.employee_index || 'Not assigned'}</div>
-              </div>
-            )}
-
-            {role === 'worker' && (
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Employee ID</span>
-                <div className="text-sm font-medium text-gray-800">{profile.employee_index || 'Not assigned'}</div>
-              </div>
-            )}
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Employee ID</span>
+              <div className="text-sm font-medium text-gray-800">{profile.employee_index || 'Not assigned'}</div>
+            </div>
 
             {role === 'doctor' && (
               <div className="flex flex-col gap-1">
@@ -293,44 +274,25 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
               </div>
             )}
 
-            {doctor && (
-              <div className="flex flex-col gap-1">
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Doctor ID</span>
-                <div className="text-sm font-medium text-gray-800">{doctor.doctor_id}</div>
-              </div>
-            )}
+            <div className={`flex flex-col gap-1 ${role === 'doctor' ? '' : 'xl:col-span-2'}`}>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Email Address</span>
+              <div className="text-sm font-medium text-gray-800 break-all">{email || 'N/A'}</div>
+            </div>
 
-            {role === 'worker' && (
-              <>
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Number</label>
-                  {editing ? (
-                    <input
-                      type="tel"
-                      value={contactNo}
-                      onChange={event => setContactNo(event.target.value)}
-                      className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
-                    />
-                  ) : (
-                    <div className="text-sm font-medium text-gray-800">{profile.contact_no || 'N/A'}</div>
-                  )}
-                </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Number</label>
+              {editing ? (
+                <input
+                  type="tel"
+                  value={contactNo}
+                  onChange={event => setContactNo(event.target.value)}
+                  className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
+                />
+              ) : (
+                <div className="text-sm font-medium text-gray-800">{profile.contact_no || 'N/A'}</div>
+              )}
+            </div>
 
-                <div className="flex flex-col gap-1 sm:col-span-2 xl:col-span-3">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Address</label>
-                  {editing ? (
-                    <textarea
-                      rows={3}
-                      value={address}
-                      onChange={event => setAddress(event.target.value)}
-                      className="border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-blue-800"
-                    />
-                  ) : (
-                    <div className="text-sm font-medium text-gray-800">{profile.address || 'N/A'}</div>
-                  )}
-                </div>
-              </>
-            )}
           </div>
 
           {editing && (
@@ -339,7 +301,7 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
             </button>
           )}
           <p className="mt-5 text-xs text-gray-400">
-            Institutional identity details can only be changed by an administrator.
+            Official identity details are managed through authorized university administration workflows.
           </p>
         </section>
       </div>

@@ -131,7 +131,7 @@ export default function StudentProfile() {
 
   return (
     <div className="p-6 lg:p-8">
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex items-start justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Profile</h1>
           <p className="text-sm text-gray-500">View your institutional identity and manage contact details.</p>
@@ -145,8 +145,8 @@ export default function StudentProfile() {
       {success && <div className="mb-4 text-xs text-emerald-600 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2">Profile saved successfully.</div>}
       {saveError && <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">{saveError}</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+      <div className="w-full">
+        <section className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
           <div className="profile-summary flex flex-col gap-4 mb-6 pb-6 border-b border-gray-100 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <div
@@ -179,17 +179,19 @@ export default function StudentProfile() {
           </div>
           {avatarMessage && <div className="mb-4 text-xs text-emerald-600 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2">{avatarMessage}</div>}
           {avatarError && <div className="mb-4 text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2">{avatarError}</div>}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {[
               { label: 'Full Name', key: null, value: student.full_name },
+              { label: 'Role', key: null, value: 'Student' },
               { label: 'Student ID', key: null, value: student.index_no },
               { label: 'Faculty', key: null, value: student.faculty },
+              { label: 'Academic Year', key: null, value: `Year ${student.academic_year}` },
               { label: 'Gender', key: null, value: student.gender },
               { label: 'Date of Birth', key: null, value: student.dob },
               { label: 'Contact Number', key: 'contact_no', type: 'input', value: student.contact_no },
               { label: 'Address', key: 'address', type: 'textarea', value: student.address, wide: true },
             ].map(field => (
-              <div key={field.label} className={`flex flex-col gap-1 ${field.wide ? 'lg:col-span-2' : ''}`}>
+              <div key={field.label} className={`flex flex-col gap-1 ${field.wide ? 'sm:col-span-2 xl:col-span-3' : ''}`}>
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{field.label}</label>
                 {editing && field.key ? (
                   field.type === 'textarea' ? (
@@ -214,7 +216,7 @@ export default function StudentProfile() {
             ))}
           </div>
           <p className="mt-5 text-xs text-gray-400">
-            Institutional identity details can only be changed by an administrator.
+            Official identity details are managed through authorized university administration workflows.
           </p>
           {editing && (
             <button onClick={handleSave} disabled={saving}
@@ -222,19 +224,7 @@ export default function StudentProfile() {
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           )}
-        </div>
-
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
-          <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wide mb-4">Account Info</h2>
-          <div className="flex flex-col gap-4">
-            {[['Student ID', student.index_no], ['Academic Year', `Year ${student.academic_year}`], ['Faculty', student.faculty || 'N/A']].map(([k, v]) => (
-              <div key={k}>
-                <div className="text-xs text-gray-400 uppercase font-semibold mb-1">{k}</div>
-                <div className="text-sm text-gray-800 font-medium">{v}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   )

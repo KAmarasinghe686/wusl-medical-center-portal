@@ -13,6 +13,7 @@ const navLinks = [
   { label: 'Notifications', href: '/faculty/notifications' },
   { label: 'Approved Records', href: '/faculty/records' },
   { label: 'Student Search', href: '/faculty/search' },
+  { label: 'Profile', href: '/faculty/profile' },
 ]
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {

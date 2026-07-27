@@ -1,0 +1,100 @@
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.actionCard {
+  position: relative;
+  min-height: 10rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.25rem 1.35rem;
+  overflow: hidden;
+  color: #25312f;
+  border: 1px solid #d5ddd9;
+  border-radius: 0.6rem;
+  background: #fbfcfb;
+  box-shadow: 0 5px 15px rgba(31, 58, 54, 0.045);
+}
+
+.actionCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: #286b66;
+}
+
+.availabilityCard::before {
+  background: #5b7b88;
+}
+
+.cardMeta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  color: #72807c;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.actionCard h2 {
+  margin: 0;
+  color: #202d2b !important;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.actionCard p {
+  max-width: 30rem;
+  margin: 0.35rem 0 1.1rem;
+  color: #687471;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.actionLink {
+  min-height: 2.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding: 0.48rem 0.72rem;
+  color: #225f5b !important;
+  border: 1px solid #91ada7;
+  border-radius: 0.38rem;
+  background: #fff;
+  box-shadow: none;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.availabilityCard .actionLink {
+  color: #486b78 !important;
+  border-color: #a2b6bd;
+}
+
+.actionLink:hover {
+  color: #fff !important;
+  border-color: #225f5b;
+  background: #225f5b;
+}
+
+.availabilityCard .actionLink:hover {
+  border-color: #4e707d;
+  background: #4e707d;
+}
+
+@media (max-width: 900px) {
+  .quickActions {
+    grid-template-columns: 1fr;
+  }
+}

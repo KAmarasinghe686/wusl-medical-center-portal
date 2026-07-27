@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../lib/supabase/browser'
 
@@ -75,10 +76,18 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-md">
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-8">
+    <main className="auth-recovery-page min-h-screen flex items-center justify-center bg-gray-50 p-6">
+      <div className="auth-recovery-shell w-full max-w-md">
+        <div className="auth-recovery-brand">
+          <Image src="/logo.png" alt="Wayamba University of Sri Lanka crest" width={52} height={52} />
+          <div>
+            <strong>Wayamba University of Sri Lanka</strong>
+            <span>Medical Centre Portal</span>
+          </div>
+        </div>
+        <div className="auth-recovery-card bg-white border border-gray-100 rounded-2xl shadow-sm p-8">
           <div className="mb-6">
+            <span className="auth-recovery-eyebrow">Account security</span>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Reset Password</h1>
             <p className="text-sm text-gray-500">Enter your new password below.</p>
           </div>
@@ -128,6 +137,6 @@ export default function ResetPassword() {
           )}
         </div>
       </div>
-    </div>
+    </main>
   )
 }

@@ -66,8 +66,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={`portal-sidebar sidebar-bg fixed inset-y-0 left-0 z-40 w-56 flex flex-col transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="px-4 py-5 border-b border-white/10 flex flex-col items-center gap-2">
           <Image src="/logo.png" alt="WUSL Logo" width={52} height={52} className="object-contain drop-shadow-lg" />
-          <div className="text-sm font-bold text-white text-center">WUSL Medical</div>
-          <div className="text-xs text-blue-300/60 text-center">Institutional Portal</div>
+          <div className="text-sm font-bold text-white text-center">Wayamba University</div>
+          <div className="text-xs text-blue-300/60 text-center">Medical Centre Portal</div>
         </div>
         <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
           {navLinks.map(link => (
@@ -77,6 +77,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           ))}
         </nav>
+        <div className="portal-sidebar-contact">
+          <span>Medical Centre</span>
+          <a href="tel:+94372284779">037 228 4779</a>
+          <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
+        </div>
       </aside>
 
       {sidebarOpen && <div className="fixed inset-0 z-30 lg:hidden bg-black/40" onClick={() => setSidebarOpen(false)} />}
@@ -89,7 +94,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="font-bold text-gray-800 text-sm">Medical Center Portal</span>
+            <div className="portal-header-title">
+              <span>Medical Centre Portal</span>
+              <small>Administration</small>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/admin/profile" className="flex items-center gap-2">
@@ -108,7 +116,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
         <main className="portal-content flex-1 bg-gray-50 overflow-x-hidden">{children}</main>
         <footer className="portal-footer py-4 text-center text-xs text-gray-400 border-t border-gray-100 bg-white">
-          2026 Medical Center Portal - Wayamba University of Sri Lanka. All rights reserved.
+          <div className="portal-footer-contact">
+            <span className="portal-footer-name">University Medical Centre · Kuliyapitiya</span>
+            <a href="tel:+94372284779">037 228 4779</a>
+            <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
+            <span className="portal-footer-address">Lionel Jayathilaka Mawatha, Kuliyapitiya 60200</span>
+          </div>
         </footer>
       </div>
     </div>

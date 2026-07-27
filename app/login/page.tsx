@@ -1,9 +1,11 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createBrowserSupabaseClient } from '../lib/supabase/browser'
+import styles from './login.module.css'
 
 const ROLES = ['Student', 'Staff', 'Doctor', 'Faculty', 'Admin']
 const supabase = createBrowserSupabaseClient()
@@ -51,14 +53,43 @@ export default function LoginPage() {
     }
 
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-    if (authError) { setError(authError.message); setLoading(false); return }
-    const { data: profile } = await supabase.from('profiles').select('role, employee_index').eq('id', data.user.id).single()
-    if (!profile) { setError('No profile found. Please contact admin.'); await supabase.auth.signOut(); setLoading(false); return }
+    if (authError) {
+      setError(authError.message)
+      setLoading(false)
+      return
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, employee_index')
+      .eq('id', data.user.id)
+      .single()
+
+    if (!profile) {
+      setError('No profile found. Please contact admin.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
     const canAccessStaff = selectedRoleNormalized === 'worker' && (
       profile.role === 'worker' || (profile.role === 'admin' && Boolean(profile.employee_index))
     )
-    if (profile.role !== selectedRoleNormalized && !canAccessStaff) { setError('Invalid role selected. Please select the correct role.'); await supabase.auth.signOut(); setLoading(false); return }
-    const roleMap: Record<string, string> = { student: '/student/dashboard', worker: '/worker/dashboard', doctor: '/doctor/dashboard', faculty: '/faculty/dashboard', admin: '/admin/dashboard' }
+
+    if (profile.role !== selectedRoleNormalized && !canAccessStaff) {
+      setError('Invalid role selected. Please select the correct role.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    const roleMap: Record<string, string> = {
+      student: '/student/dashboard',
+      worker: '/worker/dashboard',
+      doctor: '/doctor/dashboard',
+      faculty: '/faculty/dashboard',
+      admin: '/admin/dashboard',
+    }
     router.push(selectedRoleNormalized === 'worker' ? '/worker/dashboard' : roleMap[profile.role])
   }
 
@@ -78,176 +109,150 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-page min-h-screen flex flex-col lg:flex-row bg-gray-50">
-      <style>{`
-        .login-sidebar { background: linear-gradient(160deg, #0a0f1e 0%, #0d1f5c 40%, #1a0a3d 70%, #0a0f1e 100%); }
-        .input-field { transition: all 0.2s; }
-        .input-field:focus { border-color: #1d4ed8; box-shadow: 0 0 0 3px rgba(29,78,216,0.1); }
-        .sign-in-btn { background: linear-gradient(135deg, #1e3a8a, #2563eb); transition: all 0.2s; }
-        .sign-in-btn:hover { background: linear-gradient(135deg, #1e40af, #1d4ed8); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.4); }
-        .sign-in-btn:disabled { opacity: 0.6; transform: none; box-shadow: none; }
-        .role-tab { transition: all 0.15s; }
-        .role-tab.active { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; }
-        .role-tab:not(.active):hover { background: #f1f5f9; }
-        @media (max-width: 640px) {
-          .app-body .login-page .login-role-list {
-            display: grid !important;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.3rem;
-          }
-          .app-body .login-page .login-role-list .role-tab {
-            width: 100%;
-            min-width: 0;
-            min-height: 2.25rem;
-            padding: 0.5rem 0.35rem;
-          }
-        }
-      `}</style>
-
-      {/* Left sidebar */}
-      <div className="login-sidebar login-sidebar--image flex h-48 lg:h-auto lg:w-[46%] flex-col justify-between p-5 sm:p-6 lg:p-12">
-        <Image
-          src="/login-medical-center.png"
-          alt="Bright university medical centre consultation space"
-          fill
-          priority
-          sizes="(min-width: 1024px) 46vw, 100vw"
-          className="login-hero-image"
-        />
-        <div className="login-hero-overlay" aria-hidden="true" />
-        
-        <div className="login-hero-brand flex items-center gap-3">
-          <Image src="/logo.png" alt="WUSL Logo" width={60} height={60} className="object-contain drop-shadow-lg" />
-          <div>
-            <div className="text-white font-bold text-sm">WUSL Medical</div>
-            <div className="text-blue-300/60 text-xs">Institutional Portal</div>
-          </div>
-        </div>
-
-        <div className="login-hero-copy hidden lg:block">
-          <h1 className="text-4xl font-bold text-white mb-4 leading-tight">
-            Secure Clinical<br />
-            <span style={{ background: 'linear-gradient(90deg, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Administration
-            </span>
-          </h1>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-            Access your clinical portal securely. Manage medical records, visits, and institutional health data from anywhere.
-          </p>
-
-          
-        </div>
-
-        <div className="login-hero-footer hidden lg:block text-slate-600 text-xs">
-          © 2026 Wayamba University of Sri Lanka
-        </div>
-      </div>
-
-      {/* Right login form */}
-      <div className="login-form-area flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
-        <div className="login-form-card w-full max-w-md sm:max-w-lg">
-
-          <div className="login-form-intro mb-8">
-            <div className="login-eyebrow mb-3">Secure portal access</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h2>
-            <p className="text-sm text-gray-500">Sign in to access your portal</p>
-          </div>
-
-          {/* Role selector */}
-          <div className="login-role-section mb-6">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Role</label>
-            <div className="login-role-list flex gap-1 bg-gray-100 p-1 rounded-xl">
-              {ROLES.map(r => (
-                <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}
-                  className={`role-tab flex-1 py-1.5 text-xs font-semibold rounded-lg ${role === r ? 'active' : 'text-gray-500'}`}>
-                  {r}
-                </button>
-              ))}
+    <main className={styles.page}>
+      <section className={styles.formPanel}>
+        <div className={styles.loginCard}>
+          <aside className={styles.brandPanel}>
+            <Image src="/logo.png" alt="Wayamba University of Sri Lanka crest" width={70} height={70} />
+            <div className={styles.brandPanelCopy}>
+              <span>Wayamba University of Sri Lanka</span>
+              <h1>Medical Centre Portal</h1>
+              <p>Secure access to university medical and health services.</p>
             </div>
-          </div>
-
-          <div className="login-fields flex flex-col gap-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{role === 'Staff' ? 'Email Address or Employee ID' : 'Email Address'}</label>
-              <input
-                type={role === 'Staff' ? 'text' : 'email'}
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder={role === 'Staff' ? 'you@wusl.ac.lk or WUSL/EMP/001' : 'you@wusl.ac.lk'}
-                className="input-field block w-full rounded-xl border border-gray-200 bg-white py-3 px-4 text-sm focus:outline-none shadow-sm"
-              />
+            <div className={styles.brandPanelContact}>
+              <span>Medical Centre support</span>
+              <a href="tel:+94372284779">037 228 4779</a>
+              <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
             </div>
-
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Password</label>
-                <Link href="/forgot-password" className="text-xs text-blue-700 hover:text-blue-800 font-medium">Forgot password?</Link>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                  placeholder="••••••••"
-                  className="input-field block w-full rounded-xl border border-gray-200 bg-white py-3 px-4 pr-10 text-sm focus:outline-none shadow-sm"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.644C3.301 8.844 6.88 6 12 6c5.12 0 8.699 2.844 9.964 5.678.045.107.045.232 0 .339C20.699 15.156 17.12 18 12 18c-5.12 0-8.699-2.844-9.964-5.678z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {error && (
-              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">
-                <span>⚠️</span> {error}
-              </div>
-            )}
-
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="sign-in-btn w-full py-3.5 text-white text-sm font-bold rounded-xl mt-2 disabled:opacity-60"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Signing in...
-                </span>
-              ) : 'Sign In'}
-            </button>
-
-            <div className="login-divider" role="separator"><span>or</span></div>
-
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={googleLoading || loading}
-              className="google-signin-btn w-full py-3 text-sm font-semibold rounded-xl disabled:opacity-60"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="w-5 h-5">
-                <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-1.99 3.02v2.54h3.23c1.89-1.74 2.98-4.31 2.98-7.41Z" />
-                <path fill="#34A853" d="M12 22c2.7 0 4.96-.89 6.62-2.41l-3.23-2.54c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.62A10 10 0 0 0 12 22Z" />
-                <path fill="#FBBC05" d="M6.41 13.89A6.01 6.01 0 0 1 6.1 12c0-.66.11-1.3.31-1.89V7.49H3.08A10 10 0 0 0 2 12c0 1.61.38 3.14 1.08 4.51l3.33-2.62Z" />
-                <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.88A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.92 5.49l3.33 2.62C7.2 7.75 9.4 5.99 12 5.99Z" />
+            <div className={styles.authorizedLabel}>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3 5.5 5.8v5.4c0 4.1 2.7 7.9 6.5 9.2 3.8-1.3 6.5-5.1 6.5-9.2V5.8L12 3Z" />
+                <path d="M9.2 11.8 11 13.6l3.9-4.1" />
               </svg>
-              {googleLoading ? 'Connecting...' : 'Continue with Google'}
-            </button>
-          </div>
+              Authorized institutional users only
+            </div>
+          </aside>
 
-          <p className="login-form-footer text-center text-xs text-gray-400 mt-6">
-            © 2026 Medical Center Portal · Wayamba University of Sri Lanka
-          </p>
+          <div className={styles.formWrap}>
+            <div className={styles.formIntro}>
+              <span className={styles.eyebrow}>Institutional access</span>
+              <h2>Sign in to your account</h2>
+              <p>Select your account type and enter your registered credentials.</p>
+            </div>
+
+            <div className={styles.roleSection}>
+              <label id="role-label">Account type</label>
+              <div className={styles.roleList} role="group" aria-labelledby="role-label">
+                {ROLES.map((roleOption) => (
+                  <button
+                    key={roleOption}
+                    type="button"
+                    aria-pressed={role === roleOption}
+                    onClick={() => setRole(roleOption)}
+                    className={`${styles.roleButton} ${role === roleOption ? styles.roleButtonActive : ''}`}
+                  >
+                    {roleOption}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.fields}>
+              <div className={styles.field}>
+                <label htmlFor="login-identity">
+                  {role === 'Staff' ? 'Email address or employee ID' : 'Email address'}
+                </label>
+                <input
+                  id="login-identity"
+                  type={role === 'Staff' ? 'text' : 'email'}
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && handleLogin()}
+                  placeholder={role === 'Staff' ? 'you@wusl.ac.lk or WUSL/EMP/001' : 'you@wusl.ac.lk'}
+                  className={styles.input}
+                  autoComplete="username"
+                />
+              </div>
+
+              <div className={styles.field}>
+                <div className={styles.labelRow}>
+                  <label htmlFor="login-password">Password</label>
+                  <Link href="/forgot-password">Forgot password?</Link>
+                </div>
+                <div className={styles.passwordWrap}>
+                  <input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    onKeyDown={(event) => event.key === 'Enter' && handleLogin()}
+                    placeholder="••••••••"
+                    className={styles.input}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className={styles.passwordToggle}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644C3.301 8.844 6.88 6 12 6s8.699 2.844 9.964 5.678a.42.42 0 0 1 0 .339C20.699 15.156 17.12 18 12 18S3.301 15.156 2.036 12.322Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className={styles.error} role="alert">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M12 8v5M12 16.5v.1" />
+                    <path d="M10.3 4.7 3.1 17.2A2 2 0 0 0 4.8 20h14.4a2 2 0 0 0 1.7-2.8L13.7 4.7a2 2 0 0 0-3.4 0Z" />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              <button onClick={handleLogin} disabled={loading} className={styles.signInButton}>
+                {loading ? (
+                  <span className={styles.loadingLabel}>
+                    <svg className={styles.spinner} aria-hidden="true" viewBox="0 0 24 24">
+                      <circle opacity=".25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path opacity=".75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Z" />
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : 'Sign In'}
+              </button>
+
+              <div className={styles.divider} role="separator"><span>or</span></div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={googleLoading || loading}
+                className={styles.googleButton}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.92h5.38a4.6 4.6 0 0 1-1.99 3.02v2.54h3.23c1.89-1.74 2.98-4.31 2.98-7.41Z" />
+                  <path fill="#34A853" d="M12 22c2.7 0 4.96-.89 6.62-2.41l-3.23-2.54c-.9.6-2.04.96-3.39.96-2.6 0-4.8-1.76-5.59-4.12H3.08v2.62A10 10 0 0 0 12 22Z" />
+                  <path fill="#FBBC05" d="M6.41 13.89A6.01 6.01 0 0 1 6.1 12c0-.66.11-1.3.31-1.89V7.49H3.08A10 10 0 0 0 2 12c0 1.61.38 3.14 1.08 4.51l3.33-2.62Z" />
+                  <path fill="#EA4335" d="M12 5.99c1.47 0 2.79.51 3.83 1.5l2.87-2.88A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.92 5.49l3.33 2.62C7.2 7.75 9.4 5.99 12 5.99Z" />
+                </svg>
+                {googleLoading ? 'Connecting...' : 'Continue with Google'}
+              </button>
+            </div>
+
+            <div className={styles.support}>
+              <span>Having trouble signing in?</span>
+              <span>Contact the Medical Centre administration.</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+
+        <p className={styles.copyright}>© 2026 Wayamba University of Sri Lanka</p>
+      </section>
+    </main>
   )
 }

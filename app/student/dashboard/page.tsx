@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
+import dashboardStyles from './dashboard.module.css'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -132,29 +133,29 @@ export default function StudentDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="portal-action-card portal-action-card--teal rounded-2xl p-5 text-white overflow-hidden relative"
-          style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 40%, #7c3aed 100%)' }}>
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
-            style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translate(30%, -30%)' }} />
-          <div className="text-sm font-bold mb-1 relative z-10">Submit New Record</div>
-          <div className="text-xs text-blue-200 mb-4 relative z-10">Upload clinical reports or excuse letters easily.</div>
+      <div className={dashboardStyles.quickActions}>
+        <section className={`${dashboardStyles.actionCard} ${dashboardStyles.recordCard}`}>
+          <div className={dashboardStyles.cardMeta}>
+            <span>Medical records</span>
+          </div>
+          <h2>Submit New Record</h2>
+          <p>Upload a medical report or supporting document for review.</p>
           <Link href="/student/submit"
-            className="relative z-10 inline-block text-xs bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg transition-colors border border-white/30 backdrop-blur-sm">
-            Get Started
+            className={dashboardStyles.actionLink}>
+            Submit record <span aria-hidden="true">→</span>
           </Link>
-        </div>
-        <div className="portal-action-card portal-action-card--blue rounded-2xl p-5 text-white overflow-hidden relative"
-          style={{ background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 40%, #2563eb 100%)' }}>
-          <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10"
-            style={{ background: 'radial-gradient(circle, white, transparent)', transform: 'translate(30%, -30%)' }} />
-          <div className="text-sm font-bold mb-1 relative z-10">Doctor Availability</div>
-          <div className="text-xs text-violet-200 mb-4 relative z-10">Check doctor schedules and available time slots.</div>
+        </section>
+        <section className={`${dashboardStyles.actionCard} ${dashboardStyles.availabilityCard}`}>
+          <div className={dashboardStyles.cardMeta}>
+            <span>Appointments</span>
+          </div>
+          <h2>Doctor Availability</h2>
+          <p>View consultation days and available appointment times.</p>
           <Link href="/student/availability"
-            className="relative z-10 inline-block text-xs bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg transition-colors border border-white/30 backdrop-blur-sm">
-            Check Availability
+            className={dashboardStyles.actionLink}>
+            View availability <span aria-hidden="true">→</span>
           </Link>
-        </div>
+        </section>
       </div>
     </div>
   )

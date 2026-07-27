@@ -41,7 +41,7 @@ export default function WorkerVisits() {
   return (
     <div className="p-6 lg:p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-1">My Visits</h1>
-      <p className="text-sm text-gray-500 mb-6">Your visit history at the medical center.</p>
+      <p className="text-sm text-gray-500 mb-6">Your visit history at the Medical Centre.</p>
       <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Visit Logs</h2>

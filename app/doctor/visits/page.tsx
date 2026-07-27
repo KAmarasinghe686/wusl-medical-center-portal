@@ -103,7 +103,7 @@ export default function MedicalVisits() {
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Medical Visits</h1>
-          <p className="text-sm text-gray-500">Patient visit history at the medical center.</p>
+          <p className="text-sm text-gray-500">Patient visit history at the Medical Centre.</p>
         </div>
         <button onClick={() => setShowLogVisit(true)} className="bg-blue-800 hover:bg-blue-900 text-white text-xs px-4 py-2 font-semibold rounded-lg transition-colors">
           + Log New Visit

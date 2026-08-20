@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserSupabaseClient } from '../../../lib/supabase/browser'
 import type { TableRow } from '../../../lib/supabase/database.types'
-import { MAX_MEDICAL_FILES, validateMedicalFile } from '../../../lib/validation'
+import { MAX_MEDICAL_FILES, VALID_MEDICAL_ISSUERS, validateMedicalFile, type ExamCourseEntry } from '../../../lib/validation'
 
 const supabase = createBrowserSupabaseClient()
 
@@ -18,7 +18,11 @@ function StatusBadge({ status, workflowStage }: { status: string; workflowStage:
   return (
     <span className={`text-xs px-3 py-1 font-semibold rounded-full ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
       {status === 'pending'
-        ? workflowStage === 'faculty_review' ? 'Faculty Administrative Review' : 'Awaiting UMO Review'
+        ? workflowStage === 'faculty_review'
+          ? 'Faculty Administrative Review'
+          : workflowStage === 'faculty_board'
+          ? 'Awaiting Faculty Board Confirmation'
+          : 'Awaiting UMO Review'
         : status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   )
@@ -136,6 +140,9 @@ function RecordDetail() {
   if (!record) return <div className="p-8 text-sm text-gray-400">Record not found.</div>
 
   const isRejected = record.status === 'rejected' && record.lifecycle_status === 'active'
+  const isExam = record.submission_type === 'exam'
+  const courses: ExamCourseEntry[] = Array.isArray(record.exam_courses) ? (record.exam_courses as unknown as ExamCourseEntry[]) : []
+  const issuerLabel = VALID_MEDICAL_ISSUERS.find(i => i.value === record.issuer_type)?.label || record.issuer_type || 'Authorized Medical Practitioner'
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
@@ -151,7 +158,12 @@ function RecordDetail() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Medical Record Details</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {isExam && (
+            <span className="text-xs font-bold px-3 py-1 bg-amber-50 text-amber-900 rounded-full border border-amber-200">
+              Exam Medical
+            </span>
+          )}
           <StatusBadge status={record.status} workflowStage={record.workflow_stage} />
         </div>
       </div>
@@ -174,10 +186,65 @@ function RecordDetail() {
         </div>
       )}
 
-      {/* Main Content Grid: Balanced 2-Column layout when rejected, or 2/3 + 1/3 when standard */}
+      {/* Main Content Grid */}
       <div className={`grid grid-cols-1 ${isRejected ? 'lg:grid-cols-2' : 'lg:grid-cols-3'} gap-6 items-start`}>
         {/* Left Column: Record Info & Documents */}
         <div className={`${isRejected ? 'space-y-6' : 'lg:col-span-2 space-y-6'}`}>
+          {/* Exam Medical Registered Papers Card */}
+          {isExam && (
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-4">
+              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Examination Absence Details
+              </h2>
+              <div className="grid grid-cols-2 gap-3 text-xs pb-3 border-b border-gray-100">
+                <div>
+                  <span className="text-gray-400 uppercase font-semibold text-[10px]">Academic Year</span>
+                  <div className="text-sm font-semibold text-gray-900 mt-0.5">{record.exam_academic_year || '2024/2025'}</div>
+                </div>
+                <div>
+                  <span className="text-gray-400 uppercase font-semibold text-[10px]">Semester</span>
+                  <div className="text-sm font-semibold text-gray-900 mt-0.5">{record.exam_semester || 'Semester I'}</div>
+                </div>
+              </div>
+
+              {/* Table of Missed Papers */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider">Registered Papers Missed:</div>
+                {courses.length > 0 ? (
+                  courses.map((c, idx) => (
+                    <div key={idx} className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-gray-900 font-mono">{c.course_code}</span>
+                        {c.course_name && <span className="text-gray-700 ml-2 font-medium">— {c.course_name}</span>}
+                      </div>
+                      <div className="font-mono text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-200 text-xs">
+                        {c.exam_date.replace(/-/g, '.')}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-xs text-gray-500 italic">No specific course codes listed.</div>
+                )}
+              </div>
+
+              {/* UMO & Faculty Board Status */}
+              <div className="pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-gray-400 uppercase font-semibold text-[10px]">UMO Recommendation</span>
+                  <div className="text-xs font-semibold text-gray-900 mt-0.5">
+                    {record.doctor_recommendation || 'Pending Medical Officer Evaluation'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-400 uppercase font-semibold text-[10px]">Faculty Board Decision</span>
+                  <div className="text-xs font-semibold text-gray-900 mt-0.5">
+                    {record.faculty_board_decision === 'Approved' ? 'Confirmed (First Attempt Concession Granted)' : 'Awaiting Board Meeting'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Information Card */}
           <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-4">
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Submission Overview</h2>
@@ -197,6 +264,10 @@ function RecordDetail() {
                   {new Date(record.created_at).toLocaleDateString('en-GB')}
                 </div>
               </div>
+              <div className="col-span-2 sm:col-span-3">
+                <div className="text-[11px] text-gray-400 uppercase font-semibold">Issuing Medical Authority</div>
+                <div className="text-sm font-semibold text-gray-900 mt-0.5">{issuerLabel}</div>
+              </div>
               <div>
                 <div className="text-[11px] text-gray-400 uppercase font-semibold">Duration of Leave</div>
                 <div className="text-sm font-semibold text-gray-900 mt-0.5">
@@ -213,14 +284,6 @@ function RecordDetail() {
                   {record.leave_days_count || 1} {(record.leave_days_count || 1) === 1 ? 'day' : 'days'}
                 </div>
               </div>
-              {record.reviewed_by && (
-                <div>
-                  <div className="text-[11px] text-gray-400 uppercase font-semibold">Reviewed By</div>
-                  <div className="text-sm font-semibold text-gray-900 mt-0.5">
-                    {record.doctors?.full_name || 'University Medical Officer'}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Description */}
@@ -393,6 +456,14 @@ function RecordDetail() {
                   {new Date(record.created_at).toLocaleDateString('en-GB')}
                 </div>
               </div>
+              {record.doctor_recommendation && (
+                <div>
+                  <div className="text-[11px] text-gray-400 uppercase font-semibold">UMO Recommendation</div>
+                  <div className="text-sm font-bold text-gray-900 mt-0.5">
+                    {record.doctor_recommendation}
+                  </div>
+                </div>
+              )}
               {record.status !== 'pending' && record.reviewed_by && (
                 <div>
                   <div className="text-[11px] text-gray-400 uppercase font-semibold">Decision By</div>

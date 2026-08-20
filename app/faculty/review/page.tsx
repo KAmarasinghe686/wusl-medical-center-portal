@@ -118,31 +118,54 @@ export default function FacultyAdministrativeReviewPage() {
             <tbody>
               {records.length === 0 ? (
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-xs text-gray-400">No records are currently awaiting Faculty Administrative Review.</td></tr>
-              ) : records.map(record => (
-                <tr key={record.record_id} className="border-b border-gray-50">
-                  <td className="px-5 py-4">
-                    <div className="text-xs font-semibold text-blue-800">REC-{record.record_id}</div>
-                    <div className="mt-1 text-xs text-gray-500">{record.purpose}</div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="text-xs font-medium text-gray-800">{record.students?.full_name || 'Unknown student'}</div>
-                    <div className="mt-1 text-xs text-gray-400">{record.students?.index_no || 'No index number'}</div>
-                  </td>
-                  <td className="px-5 py-4 text-xs text-gray-600">{record.students?.faculty || 'Not recorded'}</td>
-                  <td className="px-5 py-4 text-xs text-gray-500">{new Date(record.created_at).toLocaleDateString('en-GB')}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={`/faculty/record-detail?id=${record.record_id}`} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-blue-800 hover:text-blue-800">
-                        View
-                      </Link>
-                      <button onClick={() => void forwardToUmo(record.record_id)} disabled={forwardingId === record.record_id}
-                        className="rounded-lg bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-900 disabled:opacity-50">
-                        {forwardingId === record.record_id ? 'Forwarding...' : 'Forward to UMO'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              ) : records.map(record => {
+                const isExam = record.submission_type === 'exam'
+                const courses: Array<{ course_code: string; exam_date: string }> = Array.isArray(record.exam_courses) ? (record.exam_courses as any) : []
+
+                return (
+                  <tr key={record.record_id} className="border-b border-gray-50 align-top">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-900 font-mono">REC-{record.record_id}</span>
+                        {isExam ? (
+                          <span className="text-xs font-semibold px-2.5 py-0.5 bg-amber-50 text-amber-900 rounded-full border border-amber-200">
+                            Exam Medical
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full">
+                            General
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-800 font-medium">{record.purpose}</div>
+                      {isExam && courses.length > 0 && (
+                        <div className="mt-2 space-y-1 text-xs text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-200 font-mono">
+                          {courses.map((c, idx) => (
+                            <div key={idx}>{c.exam_date} – <strong>{c.course_code}</strong></div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="text-xs font-medium text-gray-800">{record.students?.full_name || 'Unknown student'}</div>
+                      <div className="mt-1 text-xs text-gray-400 font-mono">{record.students?.index_no || 'No index number'}</div>
+                    </td>
+                    <td className="px-5 py-4 text-xs text-gray-600">{record.students?.faculty || 'Applied Sciences'}</td>
+                    <td className="px-5 py-4 text-xs text-gray-500 font-mono">{new Date(record.created_at).toLocaleDateString('en-GB')}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/faculty/record-detail?id=${record.record_id}`} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:border-blue-800 hover:text-blue-800">
+                          View Details
+                        </Link>
+                        <button onClick={() => void forwardToUmo(record.record_id)} disabled={forwardingId === record.record_id}
+                          className="rounded-lg bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-900 disabled:opacity-50">
+                          {forwardingId === record.record_id ? 'Forwarding...' : 'Forward to UMO'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

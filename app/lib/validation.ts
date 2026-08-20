@@ -121,3 +121,80 @@ export function extractBatchFromIndex(indexNo: string): string {
   return 'General'
 }
 
+export const VALID_MEDICAL_ISSUERS = [
+  { value: 'umo', label: 'The University Medical Officer (UMO)' },
+  { value: 'government_hospital', label: 'Medical Officer of a Government Medical Institute (Hospital / DMO)' },
+  { value: 'private_hospital', label: 'Consultant / Specialist in SLMC from a Registered Private Hospital' },
+  { value: 'consultant', label: 'Consultant / Specialist registered in the Sri Lanka Medical Council' },
+  { value: 'general_practitioner', label: 'General Practitioner registered in the Sri Lanka Medical Council' },
+  { value: 'ayurvedic', label: 'Ayurvedic Practitioner registered with Ayurvedic Medical Council' },
+] as const
+
+export type ExamCourseEntry = {
+  course_code: string
+  course_name: string
+  exam_date: string
+}
+
+export function validateExamCourses(courses: unknown): ExamCourseEntry[] | string {
+  if (!Array.isArray(courses) || courses.length === 0) {
+    return 'At least one missed course unit must be listed for an Examination Medical.'
+  }
+  const validated: ExamCourseEntry[] = []
+  for (const c of courses) {
+    if (!c || typeof c !== 'object') return 'Invalid course unit entry.'
+    const row = c as Record<string, unknown>
+    const code = cleanText(row.course_code, 30).toUpperCase()
+    const name = cleanText(row.course_name, 120)
+    const date = cleanText(row.exam_date, 20)
+    if (!code) return 'Course Unit No is required (e.g. CMIS 1131).'
+    if (!name) return `Course title is required for ${code}.`
+    if (!isIsoDate(date)) return `A valid exam date is required for ${code}.`
+    validated.push({ course_code: code, course_name: name, exam_date: date })
+  }
+  return validated
+}
+
+export function isWithinSevenCalendarDays(
+  illnessStartDate: string,
+  submissionDate = new Date().toISOString().slice(0, 10)
+): { withinDays: boolean; daysDifference: number } {
+  if (!isIsoDate(illnessStartDate) || !isIsoDate(submissionDate)) {
+    return { withinDays: true, daysDifference: 0 }
+  }
+  const start = new Date(`${illnessStartDate}T00:00:00Z`).getTime()
+  const sub = new Date(`${submissionDate}T00:00:00Z`).getTime()
+  const diffDays = Math.floor((sub - start) / (1000 * 60 * 60 * 24))
+  return {
+    withinDays: diffDays <= 7 && diffDays >= 0,
+    daysDifference: diffDays,
+  }
+}
+
+export function getCurrentAcademicYear(date = new Date()): string {
+  const currentYear = date.getFullYear()
+  const month = date.getMonth() + 1 // 1-12
+  // If in first half of year (Jan-June), current AY is (currentYear - 1)/currentYear
+  // If in second half of year (July-Dec), current AY is currentYear/(currentYear + 1)
+  if (month >= 7) {
+    return `${currentYear}/${currentYear + 1}`
+  }
+  return `${currentYear - 1}/${currentYear}`
+}
+
+export function generateAcademicYears(count = 5, baseDate = new Date()): string[] {
+  const currentAy = getCurrentAcademicYear(baseDate)
+  const [startStr] = currentAy.split('/')
+  const startYear = parseInt(startStr, 10) || baseDate.getFullYear()
+
+  const list: string[] = []
+  // Include next upcoming year + current + past count years
+  for (let i = -1; i < count; i++) {
+    const yr = startYear - i
+    list.push(`${yr}/${yr + 1}`)
+  }
+  return list
+}
+
+
+

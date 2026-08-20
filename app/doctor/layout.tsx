@@ -78,11 +78,6 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
             </Link>
           ))}
         </nav>
-        <div className="portal-sidebar-contact">
-          <span>Medical Center</span>
-          <a href="tel:+94372284779">037 228 4779</a>
-          <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
-        </div>
       </aside>
 
       {sidebarOpen && <div className="fixed inset-0 z-30 lg:hidden bg-black/40" onClick={() => setSidebarOpen(false)} />}
@@ -119,7 +114,7 @@ export default function DoctorLayout({ children }: { children: React.ReactNode }
         <footer className="portal-footer py-4 text-center text-xs text-gray-400 border-t border-gray-100 bg-white">
           <div className="portal-footer-contact">
             <span className="portal-footer-name">University Medical Center · Kuliyapitiya</span>
-            <a href="tel:+94372284779">037 228 4779</a>
+            <a href="tel:+94373158779">037 315 8779</a>
             <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
             <span className="portal-footer-address">Lionel Jayathilaka Mawatha, Kuliyapitiya 60200</span>
           </div>

@@ -191,8 +191,8 @@ function MonthlyBatchDocument() {
     return [...certItems, ...visitItems]
   }, [records, visits])
 
-  // Extract distinct available months from unified data
-  const availableMonths = useMemo(() => {
+  // Extract distinct available months from unified data, grouped by Year (capped at recent 24 months)
+  const groupedMonths = useMemo(() => {
     const map = new Map<string, string>()
     const currentYm = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
 
@@ -219,7 +219,20 @@ function MonthlyBatchDocument() {
       map.set(currentYm, `${curLabel} (Current)`)
     }
 
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]))
+    // Limit to the most recent 24 rolling months to prevent overflow
+    const sortedEntries = Array.from(map.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .slice(0, 24)
+
+    // Group by Year
+    const byYear = new Map<string, Array<{ ym: string; label: string }>>()
+    sortedEntries.forEach(([ym, label]) => {
+      const year = ym.split('-')[0]
+      if (!byYear.has(year)) byYear.set(year, [])
+      byYear.get(year)!.push({ ym, label })
+    })
+
+    return Array.from(byYear.entries())
   }, [unifiedItems])
 
   // Extract all available batches from the dataset
@@ -370,10 +383,14 @@ function MonthlyBatchDocument() {
                 className="h-9 border border-gray-200 rounded-lg px-3 bg-gray-50/50 text-xs text-gray-800 focus:outline-none focus:border-blue-800 focus:bg-white transition-colors"
               >
                 <option value="All">All Months (Show All)</option>
-                {availableMonths.map(([ym, label]) => (
-                  <option key={ym} value={ym}>
-                    {label}
-                  </option>
+                {groupedMonths.map(([year, months]) => (
+                  <optgroup key={year} label={`Year ${year}`}>
+                    {months.map(({ ym, label }) => (
+                      <option key={ym} value={ym}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             ) : (
@@ -431,7 +448,7 @@ function MonthlyBatchDocument() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-gray-100 text-xs text-gray-600">
           <div className="flex items-center gap-1.5">
             <span className="text-gray-400">Recipient Departments:</span>
-            <span className="font-medium text-gray-800">CIS • ELT • MS • IM</span>
+            <span className="font-medium text-gray-800">CMIS • ELTN • MATH • IM</span>
             <span className="text-gray-400">· Faculty of Applied Sciences</span>
           </div>
         </div>

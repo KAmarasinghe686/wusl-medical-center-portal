@@ -127,9 +127,24 @@ export default function LoginPage() {
             </div>
             <div className={styles.brandPanelContact}>
               <span>Medical Center support</span>
-              <a href="tel:+94372284779">037 228 4779</a>
+              <a href="tel:+94373158779">037 315 8779</a>
               <a href="mailto:umck@wyb.ac.lk">umck@wyb.ac.lk</a>
             </div>
+
+            {/* Test Accounts Box on Left Panel */}
+            <div className="bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl p-3 text-xs text-white/90 space-y-1.5 mt-3">
+              <div className="font-bold text-[11px] text-white/80">
+                Testing Accounts (Password: <span className="font-mono text-white lowercase">test1234</span>)
+              </div>
+              <div className="space-y-0.5 font-mono text-[11px] text-white/80">
+                <div>• student@wusl.ac.lk</div>
+                <div>• doctor@wusl.ac.lk</div>
+                <div>• faculty@wusl.ac.lk</div>
+                <div>• admin@wusl.ac.lk</div>
+                <div>• staff@wusl.ac.lk</div>
+              </div>
+            </div>
+
             <div className={styles.authorizedLabel}>
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <path d="M12 3 5.5 5.8v5.4c0 4.1 2.7 7.9 6.5 9.2 3.8-1.3 6.5-5.1 6.5-9.2V5.8L12 3Z" />

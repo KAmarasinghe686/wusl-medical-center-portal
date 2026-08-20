@@ -34,6 +34,32 @@ export async function POST(request: Request) {
   const numberOfHolidays = Math.max(0, isNaN(rawHolidays) ? 0 : rawHolidays)
   const leaveDaysCount = Math.max(1, calculateLeaveDays(leaveStartDate, leaveEndDate))
 
+  const rawSubmissionType = cleanText(formData.get('submission_type'), 20)
+  const submissionType = rawSubmissionType === 'exam' ? 'exam' : 'general'
+  const issuerType = cleanText(formData.get('issuer_type'), 80) || null
+  const illnessTiming = cleanText(formData.get('illness_timing'), 30) || 'before_exam'
+  const examAcademicYear = cleanText(formData.get('exam_academic_year'), 30) || null
+  const examSemester = cleanText(formData.get('exam_semester'), 30) || null
+  const examDegreeProgramme = cleanText(formData.get('exam_degree_programme'), 120) || 'B.Sc. (General/ Joint Major/Honours/ Special) Degree Programmes'
+
+  let examCourses: Array<{ course_code: string; course_name: string; exam_date: string }> | null = null
+  if (submissionType === 'exam') {
+    const rawCoursesJson = formData.get('exam_courses')
+    try {
+      const parsed = typeof rawCoursesJson === 'string' ? JSON.parse(rawCoursesJson) : []
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        return NextResponse.json({ error: 'Please add at least one missed exam paper/course unit.' }, { status: 400 })
+      }
+      examCourses = parsed.map((item: { course_code?: unknown; course_name?: unknown; exam_date?: unknown }) => ({
+        course_code: cleanText(item.course_code, 30).toUpperCase(),
+        course_name: cleanText(item.course_name, 120),
+        exam_date: cleanText(item.exam_date, 20),
+      }))
+    } catch {
+      return NextResponse.json({ error: 'Invalid exam courses format.' }, { status: 400 })
+    }
+  }
+
   const files = formData.getAll('files').filter((value): value is File => value instanceof File)
 
   if (!purpose || !isIsoDate(issueDate) || !isPastOrToday(issueDate)) {
@@ -75,6 +101,14 @@ export async function POST(request: Request) {
       status: 'pending',
       workflow_stage: 'faculty_review',
       submitted_by: 'student',
+      submission_type: submissionType,
+      issuer_type: issuerType,
+      illness_timing: illnessTiming,
+      exam_academic_year: examAcademicYear,
+      exam_semester: examSemester,
+      exam_degree_programme: examDegreeProgramme,
+      exam_courses: examCourses,
+      faculty_board_decision: 'Pending',
     })
     .select('record_id')
     .single()

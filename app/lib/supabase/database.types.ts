@@ -207,6 +207,18 @@ export type Database = {
           lifecycle_reason: string | null
           lifecycle_changed_at: string | null
           lifecycle_changed_by: string | null
+          submission_type: 'general' | 'exam'
+          issuer_type: string | null
+          illness_timing: string | null
+          exam_academic_year: string | null
+          exam_semester: string | null
+          exam_degree_programme: string | null
+          exam_courses: Array<{ course_code: string; course_name: string; exam_date: string }> | null
+          doctor_recommendation: string | null
+          doctor_remarks: string | null
+          faculty_board_decision: string | null
+          faculty_board_memo_no: string | null
+          faculty_board_date: string | null
           created_at: string
           updated_at: string
         }
@@ -240,6 +252,18 @@ export type Database = {
           lifecycle_reason?: string | null
           lifecycle_changed_at?: string | null
           lifecycle_changed_by?: string | null
+          submission_type?: 'general' | 'exam'
+          issuer_type?: string | null
+          illness_timing?: string | null
+          exam_academic_year?: string | null
+          exam_semester?: string | null
+          exam_degree_programme?: string | null
+          exam_courses?: Array<{ course_code: string; course_name: string; exam_date: string }> | null
+          doctor_recommendation?: string | null
+          doctor_remarks?: string | null
+          faculty_board_decision?: string | null
+          faculty_board_memo_no?: string | null
+          faculty_board_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -261,6 +285,7 @@ export type Database = {
           resubmission_details?: string | null
           resubmitted_at?: string | null
           resubmission_count?: number
+          submitted_by?: string
           reviewed_by?: number | null
           rejection_reason?: string | null
           diagnosis?: string | null
@@ -270,6 +295,18 @@ export type Database = {
           lifecycle_reason?: string | null
           lifecycle_changed_at?: string | null
           lifecycle_changed_by?: string | null
+          submission_type?: 'general' | 'exam'
+          issuer_type?: string | null
+          illness_timing?: string | null
+          exam_academic_year?: string | null
+          exam_semester?: string | null
+          exam_degree_programme?: string | null
+          exam_courses?: Array<{ course_code: string; course_name: string; exam_date: string }> | null
+          doctor_recommendation?: string | null
+          doctor_remarks?: string | null
+          faculty_board_decision?: string | null
+          faculty_board_memo_no?: string | null
+          faculty_board_date?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -686,7 +723,7 @@ export type Database = {
 
 export type UserRole = 'student' | 'doctor' | 'worker' | 'faculty' | 'admin' | 'unassigned'
 export type RecordStatus = 'pending' | 'approved' | 'rejected'
-export type RecordWorkflowStage = 'faculty_review' | 'umo_review' | 'finalized'
+export type RecordWorkflowStage = 'faculty_review' | 'umo_review' | 'faculty_board' | 'finalized'
 export type RecordLifecycleStatus = 'active' | 'archived' | 'invalidated'
 export type AccountLifecycleStatus = 'active' | 'inactive'
 export type DocumentDisposalStatus = 'retained' | 'disposal_pending' | 'disposed'

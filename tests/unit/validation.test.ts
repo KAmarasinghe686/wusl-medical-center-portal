@@ -10,6 +10,10 @@ import {
   isValidDateRange,
   safeFileName,
   validateAvailability,
+  validateExamCourses,
+  isWithinSevenCalendarDays,
+  generateAcademicYears,
+  getCurrentAcademicYear,
   validateMedicalFile,
 } from '../../app/lib/validation'
 
@@ -66,5 +70,37 @@ describe('shared validation', () => {
     expect(extractBatchFromIndex('232016')).toBe('23 Batch')
     expect(extractBatchFromIndex('invalid')).toBe('General')
   })
+
+  it('validates exam course entries properly', () => {
+    const valid = [
+      { course_code: 'CMIS 1131', course_name: 'Data Structures', exam_date: '2025-02-24' },
+      { course_code: 'IMGT 1112', course_name: 'Management', exam_date: '2025-02-26' },
+    ]
+    const res = validateExamCourses(valid)
+    expect(Array.isArray(res)).toBe(true)
+    if (Array.isArray(res)) {
+      expect(res.length).toBe(2)
+      expect(res[0].course_code).toBe('CMIS 1131')
+    }
+
+    expect(typeof validateExamCourses([])).toBe('string')
+    expect(typeof validateExamCourses([{ course_code: '', exam_date: '2025-02-24' }])).toBe('string')
+  })
+
+  it('generates dynamic academic years based on calendar date', () => {
+    // Test base date in 2026 (first half vs second half)
+    const ayFirstHalf = getCurrentAcademicYear(new Date('2026-03-15'))
+    expect(ayFirstHalf).toBe('2025/2026')
+
+    const aySecondHalf = getCurrentAcademicYear(new Date('2026-09-15'))
+    expect(aySecondHalf).toBe('2026/2027')
+
+    const list = generateAcademicYears(5, new Date('2026-09-15'))
+    expect(list).toContain('2027/2028')
+    expect(list).toContain('2026/2027')
+    expect(list).toContain('2025/2026')
+    expect(list).toContain('2024/2025')
+  })
 })
+
 

@@ -151,6 +151,31 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          department_id: number
+          faculty: string
+          department_name: string
+          department_code: string
+          head_email: string | null
+          created_at: string
+        }
+        Insert: {
+          department_id?: number
+          faculty?: string
+          department_name: string
+          department_code: string
+          head_email?: string | null
+          created_at?: string
+        }
+        Update: {
+          faculty?: string
+          department_name?: string
+          department_code?: string
+          head_email?: string | null
+        }
+        Relationships: []
+      }
       medical_records: {
         Row: {
           record_id: number
@@ -158,7 +183,20 @@ export type Database = {
           purpose: string
           description: string | null
           issue_date: string
+          leave_start_date: string | null
+          leave_end_date: string | null
+          leave_days_count: number
+          number_of_holidays: number
+          previous_leave_summary: string | null
           status: RecordStatus
+          workflow_stage: RecordWorkflowStage
+          forwarded_to_umo_at: string | null
+          forwarded_to_umo_by: string | null
+          faculty_forwarding_note: string | null
+          resubmission_reason: string | null
+          resubmission_details: string | null
+          resubmitted_at: string | null
+          resubmission_count: number
           submitted_by: string
           reviewed_by: number | null
           rejection_reason: string | null
@@ -178,7 +216,20 @@ export type Database = {
           purpose: string
           description?: string | null
           issue_date: string
+          leave_start_date?: string | null
+          leave_end_date?: string | null
+          leave_days_count?: number
+          number_of_holidays?: number
+          previous_leave_summary?: string | null
           status?: RecordStatus
+          workflow_stage?: RecordWorkflowStage
+          forwarded_to_umo_at?: string | null
+          forwarded_to_umo_by?: string | null
+          faculty_forwarding_note?: string | null
+          resubmission_reason?: string | null
+          resubmission_details?: string | null
+          resubmitted_at?: string | null
+          resubmission_count?: number
           submitted_by?: string
           reviewed_by?: number | null
           rejection_reason?: string | null
@@ -196,7 +247,20 @@ export type Database = {
           purpose?: string
           description?: string | null
           issue_date?: string
+          leave_start_date?: string | null
+          leave_end_date?: string | null
+          leave_days_count?: number
+          number_of_holidays?: number
+          previous_leave_summary?: string | null
           status?: RecordStatus
+          workflow_stage?: RecordWorkflowStage
+          forwarded_to_umo_at?: string | null
+          forwarded_to_umo_by?: string | null
+          faculty_forwarding_note?: string | null
+          resubmission_reason?: string | null
+          resubmission_details?: string | null
+          resubmitted_at?: string | null
+          resubmission_count?: number
           reviewed_by?: number | null
           rejection_reason?: string | null
           diagnosis?: string | null
@@ -571,6 +635,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      forward_medical_record_to_umo: {
+        Args: {
+          p_record_id: number
+          p_note?: string | null
+        }
+        Returns: undefined
+      }
       admin_update_user_profile: {
         Args: {
           p_actor_id: string
@@ -615,6 +686,7 @@ export type Database = {
 
 export type UserRole = 'student' | 'doctor' | 'worker' | 'faculty' | 'admin' | 'unassigned'
 export type RecordStatus = 'pending' | 'approved' | 'rejected'
+export type RecordWorkflowStage = 'faculty_review' | 'umo_review' | 'finalized'
 export type RecordLifecycleStatus = 'active' | 'archived' | 'invalidated'
 export type AccountLifecycleStatus = 'active' | 'inactive'
 export type DocumentDisposalStatus = 'retained' | 'disposal_pending' | 'disposed'

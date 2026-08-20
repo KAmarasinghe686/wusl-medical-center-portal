@@ -16,12 +16,20 @@ type MedicalRecord = {
   record_id: number
   purpose: string
   issue_date: string
+  leave_start_date: string | null
+  leave_end_date: string | null
+  leave_days_count: number
+  number_of_holidays: number
+  previous_leave_summary: string | null
   status: RecordStatus
   description: string | null
   rejection_reason: string | null
   diagnosis: string | null
   observation_notes: string | null
   recommendation: string | null
+  resubmission_reason: string | null
+  resubmission_details: string | null
+  resubmission_count: number
   students: StudentSummary | null
 }
 
@@ -68,7 +76,7 @@ function ReviewRecord() {
         .select('*, students(full_name, index_no, faculty, dob)')
         .eq('record_id', recordId)
         .eq('lifecycle_status', 'active')
-        .or(`status.eq.pending,reviewed_by.eq.${doctorId}`)
+        .or(`and(status.eq.pending,workflow_stage.eq.umo_review),reviewed_by.eq.${doctorId}`)
         .single()
 
       if (!active) return
@@ -231,7 +239,15 @@ function ReviewRecord() {
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Record Details</h2>
             <div className="flex flex-col gap-3">
-              {[['Record ID', `REC-${record.record_id}`], ['Purpose', record.purpose], ['Issue Date', record.issue_date], ['Status', record.status]].map(([k, v]) => (
+              {[
+                ['Record ID', `REC-${record.record_id}`],
+                ['Purpose', record.purpose],
+                ['Issue Date', record.issue_date],
+                ['Leave Duration', `${record.leave_start_date || record.issue_date} TO ${record.leave_end_date || record.leave_start_date || record.issue_date}`],
+                ['Leave Days', `${record.leave_days_count || 1} day(s)`],
+                ['Holidays', `${record.number_of_holidays || 0}`],
+                ['Status', record.status],
+              ].map(([k, v]) => (
                 <div key={k}>
                   <div className="text-xs text-gray-400 uppercase font-semibold mb-1">{k}</div>
                   <div className="text-sm text-gray-800 capitalize">{v}</div>
@@ -241,6 +257,13 @@ function ReviewRecord() {
                 <div>
                   <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Description</div>
                   <div className="text-sm text-gray-500">{record.description}</div>
+                </div>
+              )}
+              {record.resubmission_reason && (
+                <div>
+                  <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Latest Resubmission</div>
+                  <div className="text-sm text-gray-700">{record.resubmission_reason}</div>
+                  {record.resubmission_details && <div className="mt-1 text-sm text-gray-500">{record.resubmission_details}</div>}
                 </div>
               )}
               {record.rejection_reason && (

@@ -10,12 +10,10 @@ const supabase = createBrowserSupabaseClient()
 
 const navLinks = [
   { label: 'Dashboard', href: '/faculty/dashboard' },
-  { label: 'Notifications', href: '/faculty/notifications' },
-  { label: 'Approved Records', href: '/faculty/records' },
+  { label: 'Batch Medical Certificates', href: '/faculty/batch-document' },
+  { label: 'Administrative Review', href: '/faculty/review' },
   { label: 'Student Search', href: '/faculty/search' },
-  { label: 'Profile', href: '/faculty/profile' },
 ]
-
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [facultyName, setFacultyName] = useState('')

@@ -3,15 +3,18 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useStudent } from '../hooks/useStudent'
 
-type MedicalRecord = { record_id: number; purpose: string; issue_date: string; status: string; description: string | null }
+type MedicalRecord = { record_id: number; purpose: string; issue_date: string; status: string; workflow_stage: string; description: string | null }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, workflowStage }: { status: string; workflowStage: string }) {
   const styles: Record<string, string> = {
     approved: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     pending: 'bg-amber-50 text-amber-700 border border-amber-200',
     rejected: 'bg-red-50 text-red-700 border border-red-200',
   }
-  return <span className={`text-xs px-2 py-0.5 font-semibold rounded-full ${styles[status] || 'bg-gray-100 text-gray-700'}`}>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+  const label = status === 'pending'
+    ? workflowStage === 'faculty_review' ? 'Faculty Administrative Review' : 'Awaiting UMO Review'
+    : status.charAt(0).toUpperCase() + status.slice(1)
+  return <span className={`text-xs px-2 py-0.5 font-semibold rounded-full ${styles[status] || 'bg-gray-100 text-gray-700'}`}>{label}</span>
 }
 
 export default function MyRecords() {
@@ -73,7 +76,7 @@ export default function MyRecords() {
                   <td className="py-3 px-5 text-xs font-mono font-medium text-blue-800">REC-{r.record_id}</td>
                   <td className="py-3 px-5 text-xs text-gray-700">{r.purpose}</td>
                   <td className="py-3 px-5 text-xs text-gray-400">{r.issue_date}</td>
-                  <td className="py-3 px-5"><StatusBadge status={r.status} /></td>
+                  <td className="py-3 px-5"><StatusBadge status={r.status} workflowStage={r.workflow_stage} /></td>
                   <td className="py-3 px-5">
                     <Link href={`/student/recordss/detail?id=${r.record_id}`} className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-blue-800 hover:text-white hover:border-blue-800 transition-colors">View</Link>
                   </td>

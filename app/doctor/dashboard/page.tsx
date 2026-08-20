@@ -39,14 +39,14 @@ export default function DoctorDashboard() {
           .from('medical_records')
           .select('record_id, purpose, issue_date, status, students(full_name, index_no)')
           .eq('lifecycle_status', 'active')
-          .or(`status.eq.pending,reviewed_by.eq.${doctorId}`)
+          .or(`and(status.eq.pending,workflow_stage.eq.umo_review),reviewed_by.eq.${doctorId}`)
           .order('created_at', { ascending: false })
           .limit(5),
         supabase
           .from('medical_records')
           .select('status')
           .eq('lifecycle_status', 'active')
-          .or(`status.eq.pending,reviewed_by.eq.${doctorId}`),
+          .or(`and(status.eq.pending,workflow_stage.eq.umo_review),reviewed_by.eq.${doctorId}`),
         supabase
           .from('medical_visits')
           .select('*', { count: 'exact', head: true })

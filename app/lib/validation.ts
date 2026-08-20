@@ -98,3 +98,26 @@ export function validateAvailability(entries: AvailabilityEntry[]): string | nul
   }
   return null
 }
+
+export function isValidDateRange(startDate: string, endDate: string): boolean {
+  if (!isIsoDate(startDate) || !isIsoDate(endDate)) return false
+  return new Date(`${startDate}T00:00:00Z`) <= new Date(`${endDate}T00:00:00Z`)
+}
+
+export function calculateLeaveDays(startDate: string, endDate: string): number {
+  if (!isValidDateRange(startDate, endDate)) return 1
+  const start = new Date(`${startDate}T00:00:00Z`).getTime()
+  const end = new Date(`${endDate}T00:00:00Z`).getTime()
+  const msPerDay = 1000 * 60 * 60 * 24
+  return Math.max(1, Math.round((end - start) / msPerDay) + 1)
+}
+
+export function extractBatchFromIndex(indexNo: string): string {
+  const clean = (indexNo || '').trim()
+  if (/^2\d2\d{3}$/.test(clean)) {
+    const yearPrefix = clean.slice(0, 2)
+    return `${yearPrefix} Batch`
+  }
+  return 'General'
+}
+

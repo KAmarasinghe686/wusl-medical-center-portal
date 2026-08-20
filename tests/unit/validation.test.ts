@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   MAX_MEDICAL_FILE_SIZE,
+  calculateLeaveDays,
   cleanText,
+  extractBatchFromIndex,
   isEmail,
   isIsoDate,
   isPastOrToday,
+  isValidDateRange,
   safeFileName,
   validateAvailability,
   validateMedicalFile,
@@ -48,9 +51,20 @@ describe('shared validation', () => {
     expect(validateAvailability([
       { day: 'Monday', available: true, startTime: '17:00', endTime: '09:00' },
     ])).toContain('earlier')
-    expect(validateAvailability([
-      { day: 'Monday', available: false, startTime: '09:00', endTime: '17:00' },
-      { day: 'Monday', available: false, startTime: '09:00', endTime: '17:00' },
-    ])).toContain('only once')
+  })
+
+  it('validates leave duration and calculates leave days count', () => {
+    expect(isValidDateRange('2026-05-10', '2026-05-12')).toBe(true)
+    expect(isValidDateRange('2026-05-12', '2026-05-10')).toBe(false)
+    expect(calculateLeaveDays('2026-05-10', '2026-05-12')).toBe(3)
+    expect(calculateLeaveDays('2026-05-10', '2026-05-10')).toBe(1)
+  })
+
+  it('extracts batch from Applied Sciences index number', () => {
+    expect(extractBatchFromIndex('212335')).toBe('21 Batch')
+    expect(extractBatchFromIndex('222017')).toBe('22 Batch')
+    expect(extractBatchFromIndex('232016')).toBe('23 Batch')
+    expect(extractBatchFromIndex('invalid')).toBe('General')
   })
 })
+

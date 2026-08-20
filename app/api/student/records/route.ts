@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 import { authorizeRequest } from '../../../lib/auth/authorize'
 import {
   MAX_MEDICAL_FILES,
+  calculateLeaveDays,
   cleanText,
   isIsoDate,
   isPastOrToday,
+  isValidDateRange,
   safeFileName,
   validateMedicalFile,
 } from '../../../lib/validation'
@@ -24,10 +26,21 @@ export async function POST(request: Request) {
   const description = cleanText(formData.get('description'), 4000) || null
   const issueDateValue = formData.get('issue_date')
   const issueDate = typeof issueDateValue === 'string' ? issueDateValue : ''
+  const leaveStartDateValue = formData.get('leave_start_date')
+  const leaveStartDate = typeof leaveStartDateValue === 'string' && isIsoDate(leaveStartDateValue) ? leaveStartDateValue : issueDate
+  const leaveEndDateValue = formData.get('leave_end_date')
+  const leaveEndDate = typeof leaveEndDateValue === 'string' && isIsoDate(leaveEndDateValue) ? leaveEndDateValue : leaveStartDate
+  const rawHolidays = parseInt(String(formData.get('number_of_holidays') || '0'), 10)
+  const numberOfHolidays = Math.max(0, isNaN(rawHolidays) ? 0 : rawHolidays)
+  const leaveDaysCount = Math.max(1, calculateLeaveDays(leaveStartDate, leaveEndDate))
+
   const files = formData.getAll('files').filter((value): value is File => value instanceof File)
 
   if (!purpose || !isIsoDate(issueDate) || !isPastOrToday(issueDate)) {
     return NextResponse.json({ error: 'A valid purpose and non-future issue date are required.' }, { status: 400 })
+  }
+  if (!isValidDateRange(leaveStartDate, leaveEndDate)) {
+    return NextResponse.json({ error: 'Leave start date must be on or before leave end date.' }, { status: 400 })
   }
   if (files.length < 1 || files.length > MAX_MEDICAL_FILES) {
     return NextResponse.json({ error: `Attach between 1 and ${MAX_MEDICAL_FILES} supporting documents.` }, { status: 400 })
@@ -55,7 +68,12 @@ export async function POST(request: Request) {
       purpose,
       description,
       issue_date: issueDate,
+      leave_start_date: leaveStartDate,
+      leave_end_date: leaveEndDate,
+      leave_days_count: leaveDaysCount,
+      number_of_holidays: numberOfHolidays,
       status: 'pending',
+      workflow_stage: 'faculty_review',
       submitted_by: 'student',
     })
     .select('record_id')
@@ -93,7 +111,7 @@ export async function POST(request: Request) {
         table_name: 'medical_records',
         record_id: String(record.record_id),
         user_id: user.id,
-        new_data: { record_id: record.record_id, student_id: student.student_id, status: 'pending' },
+        new_data: { record_id: record.record_id, student_id: student.student_id, status: 'pending', workflow_stage: 'faculty_review' },
       })
       .select('audit_id')
       .single()
@@ -112,9 +130,9 @@ export async function POST(request: Request) {
         .insert(
           faculty.map(({ id }) => ({
             user_id: id,
-            title: 'New medical record submitted',
-            message: `Medical record REC-${record.record_id} is awaiting review.`,
-            type: 'record_submitted',
+            title: 'Faculty Administrative Review required',
+            message: `Medical record REC-${record.record_id} is awaiting Faculty Administrative Review.`,
+            type: 'record_faculty_review',
           }))
         )
         .select('notification_id')

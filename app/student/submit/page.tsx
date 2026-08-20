@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useStudent } from '../hooks/useStudent'
-import { MAX_MEDICAL_FILES, validateMedicalFile } from '../../lib/validation'
+import { MAX_MEDICAL_FILES, calculateLeaveDays, validateMedicalFile } from '../../lib/validation'
 
 // Predefined purposes
 const PURPOSES = [
@@ -31,11 +31,21 @@ export default function SubmitMedicalRecord() {
   const [customPurpose, setCustomPurpose] = useState('')
   const [description, setDescription] = useState('')
   const [issueDate, setIssueDate] = useState('')
+  const [leaveStartDate, setLeaveStartDate] = useState('')
+  const [leaveEndDate, setLeaveEndDate] = useState('')
+  const [holidays, setHolidays] = useState(0)
   const [files, setFiles] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  const actualStart = leaveStartDate || issueDate
+  const actualEnd = leaveEndDate || actualStart
+  const computedLeaveDays = actualStart && actualEnd && actualStart <= actualEnd
+    ? calculateLeaveDays(actualStart, actualEnd)
+    : 1
+
   const academicYear = student?.academic_year
     ? /^\d+$/.test(student.academic_year) ? `Year ${student.academic_year}` : student.academic_year
     : 'N/A'
@@ -47,7 +57,9 @@ export default function SubmitMedicalRecord() {
       })
     : 'N/A'
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files) setFiles(Array.from(e.target.files)) }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setFiles(Array.from(e.target.files))
+  }
   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index))
 
   // Get final purpose value
@@ -59,40 +71,51 @@ export default function SubmitMedicalRecord() {
   }
 
   const handleSubmit = async () => {
-  if (!student) return
-  
-  const finalPurpose = getFinalPurpose()
-  if (!finalPurpose || !issueDate) { 
-    setError('Please fill in all required fields.'); 
-    return 
-  }
-  
-  if (purpose === 'Other (Please specify)' && !customPurpose.trim()) {
-    setError('Please specify the purpose or select another option.');
-    return
-  }
+    if (!student) return
 
-  if (files.length === 0) {
-    setError('Please attach at least one supporting document.')
-    return
-  }
-  if (files.length > MAX_MEDICAL_FILES) {
-    setError(`You can attach up to ${MAX_MEDICAL_FILES} documents.`)
-    return
-  }
-  for (const file of files) {
-    const validationError = validateMedicalFile(file)
-    if (validationError) {
-      setError(validationError)
+    const finalPurpose = getFinalPurpose()
+    if (!finalPurpose || !issueDate) {
+      setError('Please fill in all required fields.')
       return
     }
-  }
-  
-    setSubmitting(true); setError('')
+
+    if (purpose === 'Other (Please specify)' && !customPurpose.trim()) {
+      setError('Please specify the purpose or select another option.')
+      return
+    }
+
+    const start = leaveStartDate || issueDate
+    const end = leaveEndDate || start
+    if (start > end) {
+      setError('Leave start date cannot be after leave end date.')
+      return
+    }
+
+    if (files.length === 0) {
+      setError('Please attach at least one supporting document.')
+      return
+    }
+    if (files.length > MAX_MEDICAL_FILES) {
+      setError(`You can attach up to ${MAX_MEDICAL_FILES} documents.`)
+      return
+    }
+    for (const file of files) {
+      const validationError = validateMedicalFile(file)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+    }
+
+    setSubmitting(true)
+    setError('')
     const payload = new FormData()
     payload.set('purpose', finalPurpose)
     payload.set('description', description)
     payload.set('issue_date', issueDate)
+    payload.set('leave_start_date', start)
+    payload.set('leave_end_date', end)
+    payload.set('number_of_holidays', String(Math.max(0, holidays || 0)))
     files.forEach(file => payload.append('files', file))
 
     const response = await fetch('/api/student/records', { method: 'POST', body: payload })
@@ -102,7 +125,8 @@ export default function SubmitMedicalRecord() {
       setSubmitting(false)
       return
     }
-    setSubmitting(false); setSuccess(true)
+    setSubmitting(false)
+    setSuccess(true)
     setTimeout(() => router.push('/student/recordss'), 1500)
   }
 
@@ -113,34 +137,20 @@ export default function SubmitMedicalRecord() {
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Submit Medical Record</h1>
       <p className="text-sm text-gray-500 mb-6">Provide the necessary documentation for institutional health tracking.</p>
 
-      {/* Student Information Card - Full Width */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 mb-6">
-        <div className="mb-4">
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Student Information</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-          {[
-            ['Student Name', student?.full_name],
-            ['Student ID', student?.index_no],
-            ['Faculty', student?.faculty],
-            ['Academic Year', academicYear],
-            ['Date of Birth', dateOfBirth],
-            ['Contact Number', student?.contact_no],
-          ].map(([k, v]) => (
-            <div key={k}>
-              <div className="text-xs text-gray-400 uppercase font-semibold mb-1">{k}</div>
-              <div className="text-sm font-medium text-gray-800">{v || 'N/A'}</div>
-            </div>
-          ))}
+      {/* Compact Student Verification Tag */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-blue-50/60 border border-blue-100 rounded-xl px-4 py-2.5 mb-6 text-xs text-blue-900">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+          <span>
+            Submitting as: <strong className="font-semibold text-gray-900">{student?.full_name || 'Student'}</strong> (Index: <span className="font-mono">{student?.index_no}</span>)
+          </span>
+          <span className="text-blue-400 hidden sm:inline">·</span>
+          <span className="text-blue-700 hidden sm:inline">{student?.faculty || 'Applied Sciences'}</span>
         </div>
         {!student?.contact_no && (
-          <div className="mt-4 border-t border-gray-100 pt-3 text-xs text-amber-700">
-            Add a contact number in your{' '}
-            <Link href="/student/profile" className="font-semibold underline underline-offset-2">
-              profile
-            </Link>
-            {' '}so the Medical Center can contact you about this submission.
-          </div>
+          <Link href="/student/profile" className="text-[11px] text-amber-800 hover:underline flex items-center gap-1 font-medium">
+            <span>⚠️ Add contact no in profile</span>
+          </Link>
         )}
       </div>
 
@@ -152,8 +162,8 @@ export default function SubmitMedicalRecord() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Purpose <span className="text-red-500">*</span></label>
-              <select 
-                value={purpose} 
+              <select
+                value={purpose}
                 onChange={e => {
                   setPurpose(e.target.value)
                   if (e.target.value !== 'Other (Please specify)') {
@@ -168,33 +178,88 @@ export default function SubmitMedicalRecord() {
                 ))}
               </select>
             </div>
-            
+
             {/* Custom purpose input - only shows when "Other" is selected */}
             {purpose === 'Other (Please specify)' && (
               <div className="flex flex-col gap-1 animate-in fade-in duration-200">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Please Specify <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  value={customPurpose} 
-                  onChange={e => setCustomPurpose(e.target.value)} 
+                <input
+                  type="text"
+                  value={customPurpose}
+                  onChange={e => setCustomPurpose(e.target.value)}
                   placeholder="Enter the purpose of this submission..."
                   className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-800"
                   autoFocus
                 />
               </div>
             )}
-            
+
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Issue Date <span className="text-red-500">*</span></label>
-              <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)}
-                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-800 w-full lg:w-48" />
+              <input
+                type="date"
+                value={issueDate}
+                onChange={e => {
+                  const val = e.target.value
+                  setIssueDate(val)
+                  if (!leaveStartDate) setLeaveStartDate(val)
+                  if (!leaveEndDate) setLeaveEndDate(val)
+                }}
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-800 w-full lg:w-48"
+              />
             </div>
-            
+
+            {/* Leave Duration Section */}
+            <div className="border border-blue-100 bg-blue-50/40 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-blue-900 uppercase tracking-wider">Duration of Leave</span>
+                <span className="text-xs font-semibold px-2 py-0.5 bg-blue-800 text-white rounded-full">
+                  {computedLeaveDays} {computedLeaveDays === 1 ? 'day' : 'days'}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-gray-600">From Date</label>
+                  <input
+                    type="date"
+                    value={leaveStartDate || issueDate}
+                    onChange={e => setLeaveStartDate(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-800 bg-white"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[11px] font-semibold text-gray-600">To Date</label>
+                  <input
+                    type="date"
+                    value={leaveEndDate || leaveStartDate || issueDate}
+                    onChange={e => setLeaveEndDate(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-800 bg-white"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 mt-1">
+                <label className="text-[11px] font-semibold text-gray-600">Number of Holidays (if any during leave)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={holidays}
+                  onChange={e => setHolidays(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                  placeholder="0"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-800 bg-white w-24"
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1">
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Description</label>
-              <textarea rows={6} value={description} onChange={e => setDescription(e.target.value)} 
+              <textarea
+                rows={4}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
                 placeholder="Describe your symptoms or reason for submission..."
-                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-800 resize-none" />
+                className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-800 resize-none"
+              />
             </div>
           </div>
         </div>
@@ -215,7 +280,7 @@ export default function SubmitMedicalRecord() {
               <span className="medical-file-browse border border-blue-800 text-blue-800 px-5 py-2 text-xs font-semibold rounded-lg transition-colors">Browse Files</span>
               <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={handleFileChange} />
             </label>
-            
+
             {files.length > 0 && (
               <div className="mt-4">
                 <h3 className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Selected Files ({files.length})</h3>
@@ -243,16 +308,16 @@ export default function SubmitMedicalRecord() {
       {(error || success) && (
         <div className="mt-6">
           {error && <div className="text-xs text-red-600 border border-red-200 bg-red-50 rounded-lg px-3 py-2 mb-4">{error}</div>}
-          {success && <div className="text-xs text-emerald-600 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2 mb-4">Record submitted successfully! Redirecting...</div>}
+          {success && <div className="text-xs text-emerald-600 border border-emerald-200 bg-emerald-50 rounded-lg px-3 py-2 mb-4">Record submitted for Faculty Administrative Review. Redirecting...</div>}
         </div>
       )}
-      
+
       <div className="mt-6 flex gap-3">
         <button onClick={handleSubmit} disabled={submitting}
           className="bg-blue-800 hover:bg-blue-900 text-white px-6 py-2.5 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
           {submitting ? 'Submitting...' : 'Submit Record'}
         </button>
-        <button onClick={() => router.back()} 
+        <button onClick={() => router.back()}
           className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-2.5 text-sm font-semibold rounded-lg transition-colors">
           Cancel
         </button>

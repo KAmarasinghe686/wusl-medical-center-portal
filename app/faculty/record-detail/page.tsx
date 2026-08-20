@@ -39,7 +39,6 @@ function FacultyRecordDetail() {
         .from('medical_records')
         .select('*, students(full_name, index_no, faculty, dob), doctors(full_name)')
         .eq('record_id', recordId)
-        .eq('status', 'approved')
         .eq('lifecycle_status', 'active')
         .single()
       if (data) {
@@ -93,6 +92,7 @@ function FacultyRecordDetail() {
 
   if (loading) return <div className="p-8 text-sm text-gray-400">Loading...</div>
   if (!record) return <div className="p-8 text-sm text-gray-400">Record not found.</div>
+  const awaitingAdministrativeReview = record.status === 'pending' && record.workflow_stage === 'faculty_review'
 
   return (
     <div className="p-6 lg:p-8">
@@ -114,8 +114,8 @@ function FacultyRecordDetail() {
             </div>
             <div className="font-bold text-gray-900 text-sm">{record.students?.full_name}</div>
             <div className="text-xs text-gray-400 mt-0.5">{record.students?.index_no}</div>
-            <span className="mt-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-3 py-1 rounded-full font-semibold">
-              {record.status?.charAt(0).toUpperCase() + record.status?.slice(1)}
+            <span className={`mt-2 border text-xs px-3 py-1 rounded-full font-semibold ${awaitingAdministrativeReview ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+              {awaitingAdministrativeReview ? 'Faculty Administrative Review' : record.status?.charAt(0).toUpperCase() + record.status?.slice(1)}
             </span>
           </div>
           <div className="flex flex-col gap-3 mt-4">
@@ -143,6 +143,13 @@ function FacultyRecordDetail() {
               <div className="mt-4">
                 <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Description</div>
                 <div className="text-sm text-gray-500">{record.description}</div>
+              </div>
+            )}
+            {record.resubmission_reason && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <div className="text-xs text-gray-400 uppercase font-semibold mb-1">Latest Resubmission</div>
+                <div className="text-sm text-gray-700">{record.resubmission_reason}</div>
+                {record.resubmission_details && <div className="mt-2 text-sm text-gray-500">{record.resubmission_details}</div>}
               </div>
             )}
           </div>

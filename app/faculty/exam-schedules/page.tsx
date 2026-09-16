@@ -158,6 +158,69 @@ function ExamSchedulesContent() {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    if (filteredRecords.length === 0) {
+      alert('No examination records match the current filters to export.')
+      return
+    }
+
+    const headers = [
+      'No',
+      'Memo No',
+      'Academic Year',
+      'Semester',
+      'Batch',
+      'Index No',
+      'Student Name',
+      'Degree Programme',
+      'Subject Codes',
+      'Examination Dates',
+      'Timing of Illness',
+      'Illness / Purpose',
+      'UMO Recommendation',
+      'Faculty Board Decision',
+      'Concession',
+      'Ratified Date',
+    ]
+
+    const rows = filteredRecords.map((r, idx) => {
+      const courses: ExamCourseEntry[] = Array.isArray(r.exam_courses) ? (r.exam_courses as any) : []
+      const subjectCodes = courses.map(c => `${c.course_code} (${c.course_name})`).join('; ')
+      const examDates = courses.map(c => `${c.course_code}: ${c.exam_date}`).join('; ')
+      const batch = extractBatchFromIndex(r.students?.index_no || '')
+
+      return [
+        idx + 1,
+        r.faculty_board_memo_no || `FB/${memoNo}/`,
+        r.exam_academic_year || 'N/A',
+        r.exam_semester || 'N/A',
+        batch || 'N/A',
+        r.students?.index_no || 'N/A',
+        `"${(r.students?.full_name || 'N/A').replace(/"/g, '""')}"`,
+        `"${(r.exam_degree_programme || 'B.Sc. Joint Major / Honours').replace(/"/g, '""')}"`,
+        `"${subjectCodes.replace(/"/g, '""')}"`,
+        `"${examDates.replace(/"/g, '""')}"`,
+        r.illness_timing === 'during_exam' ? 'Fell ill during exam' : 'Prior to exam',
+        `"${(r.purpose || r.diagnosis || 'Medical Illness').replace(/"/g, '""')}"`,
+        r.doctor_recommendation || 'Recommended',
+        r.faculty_board_decision || 'Pending',
+        'First Attempt',
+        r.faculty_board_date || 'N/A',
+      ]
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `Faculty_Board_Memo_FB_${memoNo}_Exam_Absence_Schedule.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   // Format date to DD.MM.YYYY
   const formatDateDot = (dateStr: string | null) => {
     if (!dateStr) return '-'
@@ -170,7 +233,7 @@ function ExamSchedulesContent() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
       {/* Control Bar - Hidden during printing */}
       <div className="print:hidden bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -192,7 +255,7 @@ function ExamSchedulesContent() {
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               onClick={() => void fetchExamRecords()}
-              className="h-9 border border-gray-200 text-gray-700 hover:bg-gray-50 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+              className="h-9 border border-gray-200 text-gray-700 hover:bg-gray-50 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
               title="Refresh"
             >
               <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +266,7 @@ function ExamSchedulesContent() {
             <button
               onClick={handleRatifyByFacultyBoard}
               disabled={ratifying || filteredRecords.length === 0}
-              className="h-9 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+              className="h-9 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -211,8 +274,19 @@ function ExamSchedulesContent() {
               {ratifying ? 'Ratifying...' : 'Confirm & Ratify (Faculty Board)'}
             </button>
             <button
+              onClick={handleExportExcel}
+              disabled={filteredRecords.length === 0}
+              className="h-9 bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              title="Download schedule in Excel / CSV format"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export Excel
+            </button>
+            <button
               onClick={handlePrint}
-              className="h-9 bg-blue-800 hover:bg-blue-900 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+              className="h-9 bg-blue-800 hover:bg-blue-900 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -293,31 +367,34 @@ function ExamSchedulesContent() {
       )}
 
       {/* OFFICIAL FACULTY BOARD MEMO DOCUMENT (Matches Physical Image 1 Format) */}
-      <div className="bg-white p-6 sm:p-12 border border-gray-200 rounded-2xl shadow-sm print:p-0 print:border-none print:shadow-none print:m-0">
+      <div className="bg-white p-6 sm:p-10 rounded-none border-0 shadow-none print:p-0 print:m-0 print-doc-sheet">
         <style>{`
           @media print {
-            body { background: white !important; font-size: 11pt !important; color: black !important; }
+            body { background: white !important; font-size: 9pt !important; color: black !important; }
             .portal-sidebar, .portal-header, .portal-footer, aside, header, footer { display: none !important; }
             .portal-shell, .portal-frame, .portal-content { margin: 0 !important; padding: 0 !important; }
-            @page { size: A4 portrait; margin: 15mm 12mm 15mm 12mm; }
+            .print-doc-sheet, .print-doc-sheet * { box-shadow: none !important; border-radius: 0 !important; }
+            .print-doc-sheet { border: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; background: transparent !important; }
+            @page { size: A4 landscape; margin: 8mm 8mm 8mm 8mm; }
+            .print-table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
             .print-table th, .print-table td { border: 1px solid black !important; }
           }
         `}</style>
 
         {/* Top Right Memo Box */}
-        <div className="flex justify-end mb-4">
-          <div className="border border-black px-4 py-1.5 text-xs font-serif font-bold text-black tracking-wider">
+        <div className="flex justify-end mb-3">
+          <div className="border border-black px-4 py-1 text-xs font-serif font-bold text-black tracking-wider">
             Memo FB/{memoNo || '217'}/
           </div>
         </div>
 
         {/* Document Header Block */}
-        <div className="text-center mb-6 space-y-1">
+        <div className="text-center mb-5 space-y-1">
           <div className="font-serif italic text-sm text-gray-900">Faculty of Applied Sciences</div>
           <div className="font-serif italic text-sm text-gray-900">Wayamba University of Sri Lanka</div>
           <div className="font-serif italic text-xs text-gray-800">Kuliyapitiya</div>
 
-          <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900 pt-3">
+          <h2 className="text-base sm:text-lg font-serif font-bold text-gray-900 pt-2">
             Excuses Given by the Students for Absence of Examinations
           </h2>
 
@@ -325,26 +402,40 @@ function ExamSchedulesContent() {
             B.Sc. (General/ Joint Major/Honours/ Special) Degree Programmes
           </div>
 
-          <div className="font-serif font-bold text-xs sm:text-sm text-gray-900 underline pt-1">
+          <div className="font-serif font-bold text-xs sm:text-sm text-gray-900 underline pt-0.5">
             Level 1,2,3,4 - {selectedSemester !== 'All' ? selectedSemester : 'Semester I'} Examination - Academic Year {selectedAcademicYear !== 'All' ? selectedAcademicYear : '2024/2025'}
           </div>
         </div>
 
-        {/* Official 5-Column Table */}
+        {/* Official 6-Column Table */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-900 text-xs text-left print-table">
+            <colgroup>
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '27%' }} />
+              <col style={{ width: '18%' }} />
+            </colgroup>
             <thead>
-              <tr className="bg-gray-50 print:bg-transparent font-serif font-bold text-gray-900 border-b border-gray-900">
-                <th className="border border-gray-900 px-2 py-2.5 w-12 text-center">Ser. No.</th>
-                <th className="border border-gray-900 px-3 py-2.5 w-1/4 text-center">Name</th>
-                <th className="border border-gray-900 px-2.5 py-2.5 w-20 text-center">Reg. No.</th>
-                <th className="border border-gray-900 px-3 py-2.5 w-28 text-center">
-                  Date of Submission of the Medical Certificate
+              <tr className="bg-gray-50 print:bg-transparent font-serif font-bold text-gray-900 border-b border-gray-900 text-center">
+                <th className="border border-gray-900 px-1.5 py-2 text-center" style={{ width: '5%' }}>
+                  Ser. No.
                 </th>
-                <th className="border border-gray-900 px-3 py-2.5 text-center">
-                  The date on which the Exam was held & the Code of Paper
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '22%' }}>
+                  Name
                 </th>
-                <th className="border border-gray-900 px-3 py-2.5 w-32 text-center">
+                <th className="border border-gray-900 px-1.5 py-2 text-center" style={{ width: '12%' }}>
+                  Reg. No.
+                </th>
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '16%' }}>
+                  Date of Submission of Medical Certificate
+                </th>
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '27%' }}>
+                  Date on which Exam was held & Code of Paper
+                </th>
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '18%' }}>
                   University MO's Remarks
                 </th>
               </tr>
@@ -370,27 +461,27 @@ function ExamSchedulesContent() {
                   return (
                     <tr key={r.record_id} className="border-b border-gray-900 align-top font-serif">
                       {/* Ser. No. */}
-                      <td className="border border-gray-900 px-2 py-2.5 text-center font-medium">
+                      <td className="border border-gray-900 px-1.5 py-2 text-center font-medium">
                         {String(index + 1).padStart(2, '0')}.
                       </td>
 
                       {/* Name */}
-                      <td className="border border-gray-900 px-3 py-2.5 font-medium text-gray-900">
+                      <td className="border border-gray-900 px-2 py-2 font-medium text-gray-900">
                         {r.students?.full_name || 'Student'}
                       </td>
 
                       {/* Reg. No. */}
-                      <td className="border border-gray-900 px-2.5 py-2.5 text-center font-mono font-semibold text-gray-900">
+                      <td className="border border-gray-900 px-1.5 py-2 text-center font-mono font-semibold text-gray-900">
                         {r.students?.index_no || '-'}
                       </td>
 
                       {/* Date of Submission */}
-                      <td className="border border-gray-900 px-3 py-2.5 text-center font-mono text-gray-800">
+                      <td className="border border-gray-900 px-2 py-2 text-center font-mono text-gray-800">
                         {formatDateDot(r.created_at || r.issue_date)}
                       </td>
 
                       {/* Date of Exam & Code of Paper */}
-                      <td className="border border-gray-900 px-3 py-2.5 text-xs text-gray-900">
+                      <td className="border border-gray-900 px-2 py-2 text-xs text-gray-900">
                         {courses.length > 0 ? (
                           <div className="space-y-1">
                             {courses.map((c, cIdx) => (
@@ -406,7 +497,7 @@ function ExamSchedulesContent() {
                       </td>
 
                       {/* University MO's Remarks */}
-                      <td className="border border-gray-900 px-3 py-2.5 text-center text-xs font-semibold">
+                      <td className="border border-gray-900 px-2 py-2 text-center text-xs font-semibold">
                         <div className={moRemark === 'Recommended' ? 'text-emerald-900 print:text-black font-bold' : moRemark === 'Not Recommended' ? 'text-red-800 print:text-black font-bold' : 'text-gray-500'}>
                           {moRemark}
                         </div>
@@ -429,15 +520,20 @@ function ExamSchedulesContent() {
           </table>
         </div>
 
-        {/* Footer Notes & Faculty Board Confirmation Block */}
-        <div className="mt-12 flex justify-between items-end text-xs font-serif pt-6">
-          <div>
-            <div className="font-bold">Faculty of Applied Sciences</div>
-            <div className="text-gray-600 text-[11px]">Senior Assistant Registrar / Examination Branch</div>
+        {/* Official Document Signatures Block */}
+        <div className="mt-8 pt-4 flex justify-between items-start text-xs font-serif text-gray-900 print-avoid-break">
+          <div className="w-64 space-y-1">
+            <div className="border-t border-black pt-1.5 mb-1 w-56"></div>
+            <div className="font-bold text-xs text-gray-900">Senior Assistant Registrar</div>
+            <div className="text-gray-700 text-[11px]">Examination Branch / Faculty of Applied Sciences</div>
+            <div className="text-gray-600 text-[10px]">Wayamba University of Sri Lanka</div>
           </div>
-          <div className="text-center border-t border-black pt-1 w-56">
-            <div className="font-bold">Dean / Faculty Board</div>
-            <div className="text-[11px] text-gray-600">Faculty of Applied Sciences</div>
+
+          <div className="w-64 space-y-1 text-right">
+            <div className="border-t border-black pt-1.5 mb-1 w-56 ml-auto"></div>
+            <div className="font-bold text-xs text-gray-900">Dean / Faculty Board</div>
+            <div className="text-gray-700 text-[11px]">Faculty of Applied Sciences</div>
+            <div className="text-gray-600 text-[10px]">Wayamba University of Sri Lanka</div>
           </div>
         </div>
       </div>

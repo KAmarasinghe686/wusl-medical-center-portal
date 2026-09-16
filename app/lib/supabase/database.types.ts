@@ -14,6 +14,7 @@ export type Database = {
             id: string
             full_name: string | null
             role: UserRole
+            faculty_sub_role: 'full_access' | 'coursework_staff' | 'exam_staff' | null
             employee_index: string | null
             contact_no: string | null
             address: string | null
@@ -27,6 +28,7 @@ export type Database = {
             id: string
             full_name?: string | null
             role?: UserRole
+            faculty_sub_role?: 'full_access' | 'coursework_staff' | 'exam_staff' | null
             employee_index?: string | null
             contact_no?: string | null
             address?: string | null
@@ -39,6 +41,7 @@ export type Database = {
           Update: {
             full_name?: string | null
             role?: UserRole
+            faculty_sub_role?: 'full_access' | 'coursework_staff' | 'exam_staff' | null
             employee_index?: string | null
             contact_no?: string | null
             address?: string | null
@@ -209,6 +212,7 @@ export type Database = {
           lifecycle_changed_by: string | null
           submission_type: 'general' | 'exam'
           issuer_type: string | null
+          doctor_name: string | null
           illness_timing: string | null
           exam_academic_year: string | null
           exam_semester: string | null
@@ -219,6 +223,7 @@ export type Database = {
           faculty_board_decision: string | null
           faculty_board_memo_no: string | null
           faculty_board_date: string | null
+          advance_notice_id: number | null
           created_at: string
           updated_at: string
         }
@@ -254,6 +259,7 @@ export type Database = {
           lifecycle_changed_by?: string | null
           submission_type?: 'general' | 'exam'
           issuer_type?: string | null
+          doctor_name?: string | null
           illness_timing?: string | null
           exam_academic_year?: string | null
           exam_semester?: string | null
@@ -264,6 +270,7 @@ export type Database = {
           faculty_board_decision?: string | null
           faculty_board_memo_no?: string | null
           faculty_board_date?: string | null
+          advance_notice_id?: number | null
           created_at?: string
           updated_at?: string
         }
@@ -278,6 +285,7 @@ export type Database = {
           previous_leave_summary?: string | null
           status?: RecordStatus
           workflow_stage?: RecordWorkflowStage
+          doctor_name?: string | null
           forwarded_to_umo_at?: string | null
           forwarded_to_umo_by?: string | null
           faculty_forwarding_note?: string | null
@@ -307,6 +315,7 @@ export type Database = {
           faculty_board_decision?: string | null
           faculty_board_memo_no?: string | null
           faculty_board_date?: string | null
+          advance_notice_id?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -326,6 +335,65 @@ export type Database = {
           },
         ]
       }
+      advance_medical_notices: {
+        Row: {
+          notice_id: number
+          student_id: number
+          submission_type: 'general' | 'exam'
+          illness_start_date: string
+          expected_end_date: string | null
+          reason: string
+          treatment_status: string | null
+          hospital_name: string | null
+          affected_courses: Array<{ course_code: string; course_name?: string; exam_date: string }> | null
+          contact_number: string | null
+          status: 'pending' | 'acknowledged' | 'medical_submitted'
+          acknowledged_by: string | null
+          acknowledged_at: string | null
+          faculty_notes: string | null
+          created_at: string
+        }
+        Insert: {
+          notice_id?: number
+          student_id: number
+          submission_type?: 'general' | 'exam'
+          illness_start_date: string
+          expected_end_date?: string | null
+          reason: string
+          treatment_status?: string | null
+          hospital_name?: string | null
+          affected_courses?: Array<{ course_code: string; course_name?: string; exam_date: string }> | null
+          contact_number?: string | null
+          status?: 'pending' | 'acknowledged' | 'medical_submitted'
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          faculty_notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          submission_type?: 'general' | 'exam'
+          illness_start_date?: string
+          expected_end_date?: string | null
+          reason?: string
+          treatment_status?: string | null
+          hospital_name?: string | null
+          affected_courses?: Array<{ course_code: string; course_name?: string; exam_date: string }> | null
+          contact_number?: string | null
+          status?: 'pending' | 'acknowledged' | 'medical_submitted'
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          faculty_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'advance_medical_notices_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'students'
+            referencedColumns: ['student_id']
+          },
+        ]
+      }
       record_images: {
         Row: {
           image_id: number
@@ -337,6 +405,7 @@ export type Database = {
           disposal_reason: string | null
           disposed_at: string | null
           disposed_by: string | null
+          document_type: 'medical_certificate' | 'letter_to_dean' | 'resubmission_document' | 'other' | null
           created_at: string
         }
         Insert: {
@@ -349,6 +418,7 @@ export type Database = {
           disposal_reason?: string | null
           disposed_at?: string | null
           disposed_by?: string | null
+          document_type?: 'medical_certificate' | 'letter_to_dean' | 'resubmission_document' | 'other' | null
           created_at?: string
         }
         Update: {
@@ -359,6 +429,7 @@ export type Database = {
           disposal_reason?: string | null
           disposed_at?: string | null
           disposed_by?: string | null
+          document_type?: 'medical_certificate' | 'letter_to_dean' | 'resubmission_document' | 'other' | null
         }
         Relationships: [
           {
@@ -721,7 +792,7 @@ export type Database = {
   }
 }
 
-export type UserRole = 'student' | 'doctor' | 'worker' | 'faculty' | 'admin' | 'unassigned'
+export type UserRole = 'student' | 'doctor' | 'worker' | 'faculty' | 'admin' | 'dean' | 'unassigned'
 export type RecordStatus = 'pending' | 'approved' | 'rejected'
 export type RecordWorkflowStage = 'faculty_review' | 'umo_review' | 'faculty_board' | 'finalized'
 export type RecordLifecycleStatus = 'active' | 'archived' | 'invalidated'

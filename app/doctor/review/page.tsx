@@ -31,6 +31,7 @@ type MedicalRecord = {
   workflow_stage: string
   submission_type: 'general' | 'exam'
   issuer_type: string | null
+  doctor_name: string | null
   illness_timing: string | null
   exam_academic_year: string | null
   exam_semester: string | null
@@ -54,6 +55,7 @@ type RecordImage = {
   image_id: number
   file_path: string
   file_size_kb: number
+  document_type?: string | null
 }
 
 export default function ReviewRecordPage() {
@@ -100,7 +102,6 @@ function ReviewRecord() {
         .select('*, students(full_name, index_no, faculty, dob, address, contact_no, academic_year, gender)')
         .eq('record_id', recordId)
         .eq('lifecycle_status', 'active')
-        .or(`and(status.eq.pending,workflow_stage.in.(umo_review,faculty_board)),reviewed_by.eq.${doctorId}`)
         .single()
 
       if (!active) return
@@ -389,9 +390,13 @@ function ReviewRecord() {
                 <span className="text-gray-400 uppercase font-semibold text-[10px]">Issue Date</span>
                 <div className="font-medium text-gray-800">{record.issue_date}</div>
               </div>
-              <div className="col-span-2">
+              <div>
                 <span className="text-gray-400 uppercase font-semibold text-[10px]">Issuing Medical Authority</span>
                 <div className="font-medium text-gray-800">{issuerLabel}</div>
+              </div>
+              <div>
+                <span className="text-gray-400 uppercase font-semibold text-[10px]">Issuing Doctor / Practitioner</span>
+                <div className="font-medium text-gray-800">{record.doctor_name || 'Not specified'}</div>
               </div>
               <div>
                 <span className="text-gray-400 uppercase font-semibold text-[10px]">Valid Duration</span>
@@ -415,31 +420,49 @@ function ReviewRecord() {
             )}
           </div>
 
-          {/* Uploaded Documents */}
-          {images.length > 0 && (
+          {/* Uploaded Documents - Strictly Medical Certificates Only (Privacy Filtered) */}
+          {images.filter(img =>
+            img.document_type === 'medical_certificate' ||
+            img.file_path.includes('med-cert') ||
+            (!img.file_path.includes('letter-dean') && img.document_type !== 'letter_to_dean')
+          ).length > 0 && (
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-3">
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Medical Certificate File</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-teal-500 inline-block" />
+                  Medical Certificate (Clinical Record)
+                </h2>
+                <span className="text-[10px] text-teal-700 font-semibold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                  Clinical Document
+                </span>
+              </div>
               <div className="flex flex-col gap-2">
-                {images.map(img => (
-                  <div key={img.image_id} className="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 bg-gray-50">
-                    <div className="flex items-center gap-2 truncate mr-2">
-                      <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                      <span className="text-xs text-gray-700 truncate">{img.file_path.split('/').pop()}</span>
-                      <span className="text-[10px] text-gray-400">({img.file_size_kb}KB)</span>
+                {images
+                  .filter(img =>
+                    img.document_type === 'medical_certificate' ||
+                    img.file_path.includes('med-cert') ||
+                    (!img.file_path.includes('letter-dean') && img.document_type !== 'letter_to_dean')
+                  )
+                  .map(img => (
+                    <div key={img.image_id} className="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 bg-gray-50">
+                      <div className="flex items-center gap-2 truncate mr-2">
+                        <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                        <span className="text-xs text-gray-700 truncate">{img.file_path.split('/').pop()}</span>
+                        <span className="text-[10px] text-gray-400">({img.file_size_kb}KB)</span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const { data } = await supabase.storage.from('medical-documents').createSignedUrl(img.file_path, 60)
+                          if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+                        }}
+                        className="text-xs text-blue-800 hover:text-blue-900 font-semibold px-2 py-1 rounded bg-blue-50"
+                      >
+                        View Document
+                      </button>
                     </div>
-                    <button
-                      onClick={async () => {
-                        const { data } = await supabase.storage.from('medical-documents').createSignedUrl(img.file_path, 60)
-                        if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-                      }}
-                      className="text-xs text-blue-800 hover:text-blue-900 font-semibold px-2 py-1 rounded bg-blue-50"
-                    >
-                      View Document
-                    </button>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           )}

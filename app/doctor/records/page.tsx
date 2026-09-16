@@ -41,16 +41,10 @@ export default function AssignedRecords() {
 
   const fetchRecords = useCallback(async () => {
     setRecordsLoading(true)
-    let query = supabase
+    const query = supabase
       .from('medical_records')
       .select('*, students(full_name, index_no)')
       .eq('lifecycle_status', 'active')
-
-    if (doctorId) {
-      query = query.or(`status.eq.pending,reviewed_by.eq.${doctorId}`)
-    } else {
-      query = query.eq('status', 'pending')
-    }
 
     const { data, error } = await query.order('created_at', { ascending: false })
 

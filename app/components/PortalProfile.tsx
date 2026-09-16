@@ -5,7 +5,7 @@ import { createBrowserSupabaseClient } from '../lib/supabase/browser'
 
 const supabase = createBrowserSupabaseClient()
 
-type PortalRole = 'admin' | 'doctor' | 'worker' | 'faculty'
+type PortalRole = 'admin' | 'doctor' | 'worker' | 'faculty' | 'dean'
 
 type ProfileRecord = {
   id: string
@@ -26,6 +26,7 @@ const roleLabels: Record<PortalRole, string> = {
   doctor: 'Doctor',
   worker: 'Staff',
   faculty: 'Faculty',
+  dean: 'Dean',
 }
 
 const profileDescriptions: Record<PortalRole, string> = {
@@ -33,6 +34,7 @@ const profileDescriptions: Record<PortalRole, string> = {
   doctor: 'View your professional identity and manage your professional contact number.',
   worker: 'View your university staff identity and manage your contact number.',
   faculty: 'View your faculty identity and manage your official contact number.',
+  dean: 'View your Dean of Faculty identity and manage your official contact number.',
 }
 
 export default function PortalProfile({ role }: { role: PortalRole }) {
@@ -68,7 +70,16 @@ export default function PortalProfile({ role }: { role: PortalRole }) {
         .single()
 
       if (!active) return
-      if (profileError || !profileData || profileData.role !== role) {
+      const isRoleMatch =
+        profileData?.role === role ||
+        (role === 'dean' && (
+          profileData?.role === 'dean' ||
+          user.email === 'dean@wusl.ac.lk' ||
+          user.user_metadata?.role === 'dean' ||
+          (profileData?.role === 'faculty' && user.email?.startsWith('dean'))
+        ))
+
+      if (profileError || !profileData || !isRoleMatch) {
         setError('Unable to load this profile.')
         setLoading(false)
         return

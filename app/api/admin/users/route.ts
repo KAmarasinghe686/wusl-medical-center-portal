@@ -6,7 +6,7 @@ import { cleanText, isEmail } from '../../../lib/validation'
 
 type ProfileRow = Pick<
   TableRow<'profiles'>,
-  'id' | 'full_name' | 'role' | 'employee_index' | 'is_active' | 'status_reason' | 'status_changed_at' | 'created_at'
+  'id' | 'full_name' | 'role' | 'faculty_sub_role' | 'employee_index' | 'is_active' | 'status_reason' | 'status_changed_at' | 'created_at'
 >
 
 type RoleNameRow = {
@@ -37,7 +37,7 @@ async function listAllProfiles(serviceClient: NonNullable<Awaited<ReturnType<typ
   while (true) {
     const { data, error } = await serviceClient
       .from('profiles')
-      .select('id, full_name, role, employee_index, is_active, status_reason, status_changed_at, created_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .range(from, from + 999)
 
@@ -239,6 +239,23 @@ export async function PATCH(request: Request) {
     }
 
     return NextResponse.json({ success: true, email_changed: true })
+  }
+
+  if (values.action === 'update-faculty-subrole') {
+    const subRole = typeof values.faculty_sub_role === 'string' ? values.faculty_sub_role : ''
+    if (subRole !== 'full_access' && subRole !== 'coursework_staff' && subRole !== 'exam_staff') {
+      return NextResponse.json({ error: 'Invalid faculty desk assignment.' }, { status: 400 })
+    }
+    const { error: updateError } = await serviceClient
+      .from('profiles')
+      .update({ faculty_sub_role: subRole })
+      .eq('id', String(values.id || ''))
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true })
   }
 
   if (values.action === 'edit') {

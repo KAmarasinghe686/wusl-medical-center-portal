@@ -8,17 +8,27 @@ import { createBrowserSupabaseClient } from '../lib/supabase/browser'
 
 const supabase = createBrowserSupabaseClient()
 
-const navLinks = [
+const overviewLinks = [
   { label: 'Dashboard', href: '/faculty/dashboard' },
-  { label: 'Batch Medical Certificates', href: '/faculty/batch-document' },
-  { label: 'Exam Medical Schedules (FB)', href: '/faculty/exam-schedules' },
-  { label: 'Administrative Review', href: '/faculty/review' },
+  { label: 'Advance Medical Notices', href: '/faculty/advance-notices' },
   { label: 'Student Search', href: '/faculty/search' },
 ]
+
+const courseworkLinks = [
+  { label: 'Attendance Review Queue', href: '/faculty/review?type=general' },
+  { label: 'Monthly Batch Documents', href: '/faculty/batch-document' },
+]
+
+const examLinks = [
+  { label: 'Exam Review Queue', href: '/faculty/review?type=exam' },
+  { label: 'Faculty Board Schedules (FB)', href: '/faculty/exam-schedules' },
+]
+
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [facultyName, setFacultyName] = useState('')
   const [facultyAvatar, setFacultyAvatar] = useState('')
+  const [subRole, setSubRole] = useState<'full_access' | 'coursework_staff' | 'exam_staff'>('full_access')
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
@@ -41,9 +51,10 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
       if (!user) { router.push('/login'); return }
       const savedAvatar = user.user_metadata?.profile_avatar_url || user.user_metadata?.avatar_url
       if (savedAvatar) setFacultyAvatar(savedAvatar)
-      const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       if (profile?.role !== 'faculty') { router.push('/login'); return }
       if (profile?.full_name) setFacultyName(profile.full_name)
+      if (profile?.faculty_sub_role) setSubRole(profile.faculty_sub_role as 'full_access' | 'coursework_staff' | 'exam_staff')
       userId = user.id
       await refreshCount()
       window.addEventListener('focus', refreshCount)
@@ -67,6 +78,16 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
     router.push('/login')
   }
 
+  const showCoursework = subRole === 'full_access' || subRole === 'coursework_staff'
+  const showExam = subRole === 'full_access' || subRole === 'exam_staff'
+
+  const subRoleLabel =
+    subRole === 'coursework_staff'
+      ? 'Coursework & Attendance'
+      : subRole === 'exam_staff'
+      ? 'Examination Branch'
+      : 'Faculty Services'
+
   return (
     <div className="portal-shell min-h-screen flex bg-gray-50">
       <style>{`
@@ -77,25 +98,60 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
         .avatar-grad { background: linear-gradient(135deg, #6366f1, #3b82f6); }
       `}</style>
 
-      <aside className={`portal-sidebar sidebar-bg fixed inset-y-0 left-0 z-40 w-56 flex flex-col transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`portal-sidebar sidebar-bg fixed inset-y-0 left-0 z-40 w-60 flex flex-col transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="px-4 py-5 border-b border-white/10 flex flex-col items-center gap-2">
           <Image src="/logo.png" alt="WUSL Logo" width={52} height={52} className="object-contain drop-shadow-lg" />
           <div className="text-sm font-bold text-white text-center">Wayamba University</div>
           <div className="text-xs text-blue-300/60 text-center">Medical Center Portal</div>
         </div>
-        <nav className="flex-1 px-3 py-4 flex flex-col gap-0.5">
-          {navLinks.map(link => (
-            <Link key={link.href} href={link.href} data-nav={link.label} onClick={() => setSidebarOpen(false)}
-              className={`px-3 py-2.5 text-xs rounded-lg transition-all ${pathname === link.href ? 'nav-active' : 'nav-inactive'}`}>
-              {link.label}
-            </Link>
-          ))}
+
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-4 overflow-y-auto">
+          {/* Overview Links */}
+          <div className="flex flex-col gap-0.5">
+            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Overview</span>
+            {overviewLinks.map(link => (
+              <Link key={link.href} href={link.href} data-nav={link.label} onClick={() => setSidebarOpen(false)}
+                className={`px-3 py-2 text-xs rounded-lg transition-all ${pathname === link.href ? 'nav-active' : 'nav-inactive'}`}>
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Coursework & Attendance Desk */}
+          {showCoursework && (
+            <div className="flex flex-col gap-0.5 pt-2 border-t border-white/10">
+              <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-400/70 mb-1">
+                Coursework Desk
+              </span>
+              {courseworkLinks.map(link => (
+                <Link key={link.href} href={link.href} data-nav={link.label} onClick={() => setSidebarOpen(false)}
+                  className={`px-3 py-2 text-xs rounded-lg transition-all ${pathname === link.href.split('?')[0] ? 'nav-active' : 'nav-inactive'}`}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Examination Absence Desk */}
+          {showExam && (
+            <div className="flex flex-col gap-0.5 pt-2 border-t border-white/10">
+              <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-amber-400/70 mb-1">
+                Examination Desk
+              </span>
+              {examLinks.map(link => (
+                <Link key={link.href} href={link.href} data-nav={link.label} onClick={() => setSidebarOpen(false)}
+                  className={`px-3 py-2 text-xs rounded-lg transition-all ${pathname === link.href.split('?')[0] ? 'nav-active' : 'nav-inactive'}`}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </nav>
       </aside>
 
       {sidebarOpen && <div className="fixed inset-0 z-30 lg:hidden bg-black/40" onClick={() => setSidebarOpen(false)} />}
 
-      <div className="portal-frame flex-1 lg:ml-56 flex flex-col min-h-screen">
+      <div className="portal-frame flex-1 lg:ml-60 flex flex-col min-h-screen">
         <header className="portal-header sticky top-0 z-20 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shadow-sm">
           <div className="flex items-center gap-3">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-gray-500">
@@ -105,7 +161,7 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
             </button>
             <div className="portal-header-title">
               <span>Medical Center Portal</span>
-              <small>Faculty Services</small>
+              <small>{subRoleLabel}</small>
             </div>
           </div>
           <div className="flex items-center gap-3">

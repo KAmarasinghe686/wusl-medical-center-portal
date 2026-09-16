@@ -45,6 +45,7 @@ export function isUserRole(value: unknown): value is Exclude<UserRole, 'unassign
     value === 'doctor' ||
     value === 'worker' ||
     value === 'faculty' ||
+    value === 'dean' ||
     value === 'admin'
 }
 

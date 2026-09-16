@@ -53,7 +53,9 @@ export default function SubmitMedicalRecord() {
   const [leaveEndDate, setLeaveEndDate] = useState('')
   const [holidays, setHolidays] = useState(0)
   const [issuerType, setIssuerType] = useState<string>('government_hospital')
-  const [files, setFiles] = useState<File[]>([])
+  const [doctorName, setDoctorName] = useState('')
+  const [medicalFiles, setMedicalFiles] = useState<File[]>([])
+  const [letterFiles, setLetterFiles] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
@@ -74,10 +76,15 @@ export default function SubmitMedicalRecord() {
 
   const sevenDayCheck = isWithinSevenCalendarDays(actualStart)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFiles(Array.from(e.target.files))
+  const handleMedicalFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setMedicalFiles(Array.from(e.target.files))
   }
-  const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index))
+  const removeMedicalFile = (index: number) => setMedicalFiles(prev => prev.filter((_, i) => i !== index))
+
+  const handleLetterFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setLetterFiles(Array.from(e.target.files))
+  }
+  const removeLetterFile = (index: number) => setLetterFiles(prev => prev.filter((_, i) => i !== index))
 
   const addCourseRow = () => {
     setExamCourses(prev => [...prev, { course_code: '', course_name: '', exam_date: '' }])
@@ -109,6 +116,11 @@ export default function SubmitMedicalRecord() {
       return
     }
 
+    if (!doctorName.trim()) {
+      setError('Please enter the issuing doctor / medical practitioner name.')
+      return
+    }
+
     if (submissionType === 'general' && purpose === 'Other (Please specify)' && !customPurpose.trim()) {
       setError('Please specify the purpose or select another option.')
       return
@@ -129,18 +141,34 @@ export default function SubmitMedicalRecord() {
       }
     }
 
-    if (files.length === 0) {
-      setError('Please attach at least one supporting medical document.')
+    if (medicalFiles.length === 0) {
+      setError('Please attach at least one official Medical Certificate.')
       return
     }
-    if (files.length > MAX_MEDICAL_FILES) {
-      setError(`You can attach up to ${MAX_MEDICAL_FILES} documents.`)
+    if (medicalFiles.length > MAX_MEDICAL_FILES) {
+      setError(`You can attach up to ${MAX_MEDICAL_FILES} medical certificate documents.`)
       return
     }
-    for (const file of files) {
+    for (const file of medicalFiles) {
       const validationError = validateMedicalFile(file)
       if (validationError) {
-        setError(validationError)
+        setError(`Medical Certificate: ${validationError}`)
+        return
+      }
+    }
+
+    if (letterFiles.length === 0) {
+      setError('Please attach the Letter to the Dean requesting absence consideration.')
+      return
+    }
+    if (letterFiles.length > MAX_MEDICAL_FILES) {
+      setError(`You can attach up to ${MAX_MEDICAL_FILES} letter documents.`)
+      return
+    }
+    for (const file of letterFiles) {
+      const validationError = validateMedicalFile(file)
+      if (validationError) {
+        setError(`Letter to the Dean: ${validationError}`)
         return
       }
     }
@@ -156,6 +184,7 @@ export default function SubmitMedicalRecord() {
     payload.set('leave_end_date', end)
     payload.set('number_of_holidays', String(Math.max(0, holidays || 0)))
     payload.set('issuer_type', issuerType)
+    payload.set('doctor_name', doctorName.trim())
 
     if (submissionType === 'exam') {
       payload.set('exam_academic_year', examAcademicYear)
@@ -164,7 +193,14 @@ export default function SubmitMedicalRecord() {
       payload.set('exam_courses', JSON.stringify(examCourses.filter(c => c.course_code.trim())))
     }
 
-    files.forEach(file => payload.append('files', file))
+    medicalFiles.forEach(file => {
+      payload.append('medical_files', file)
+      payload.append('files', file)
+    })
+    letterFiles.forEach(file => {
+      payload.append('letter_files', file)
+      payload.append('files', file)
+    })
 
     const response = await fetch('/api/student/records', { method: 'POST', body: payload })
     const result = await response.json()
@@ -445,20 +481,35 @@ export default function SubmitMedicalRecord() {
             </div>
           )}
 
-          {/* Medical Issuer */}
-          <div className="space-y-1 pt-2 border-t border-gray-100">
-            <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-              Issuing Medical Authority <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={issuerType}
-              onChange={e => setIssuerType(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-gray-50/50 focus:bg-white focus:outline-none focus:border-blue-800"
-            >
-              {VALID_MEDICAL_ISSUERS.map(i => (
-                <option key={i.value} value={i.value}>{i.label}</option>
-              ))}
-            </select>
+          {/* Medical Issuer & Doctor Name */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                Issuing Authority <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={issuerType}
+                onChange={e => setIssuerType(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-gray-50/50 focus:bg-white focus:outline-none focus:border-blue-800"
+              >
+                {VALID_MEDICAL_ISSUERS.map(i => (
+                  <option key={i.value} value={i.value}>{i.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                Doctor / Practitioner Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={doctorName}
+                onChange={e => setDoctorName(e.target.value)}
+                placeholder="e.g. Dr. N. K. Perera (MBBS, DMO)"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-gray-50/50 focus:bg-white focus:outline-none focus:border-blue-800"
+              />
+            </div>
           </div>
 
           {/* Certificate Issue Date */}
@@ -527,39 +578,89 @@ export default function SubmitMedicalRecord() {
             />
           </div>
 
-          {/* Document Upload */}
+          {/* Document Upload Section 1: Medical Certificate */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-600 uppercase tracking-wider">
-              Upload Medical Certificate <span className="text-red-500">*</span>
-            </label>
-            <div className="border-2 border-dashed border-gray-200 hover:border-blue-800 rounded-xl p-4 text-center bg-gray-50/30 transition-colors">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-teal-500 inline-block" />
+                1. Upload Medical Certificate <span className="text-red-500">*</span>
+              </label>
+              <span className="text-[10px] text-gray-400 font-medium">Issued by Doctor / Hospital</span>
+            </div>
+            <div className="border-2 border-dashed border-teal-200 hover:border-teal-500 rounded-xl p-3.5 text-center bg-teal-50/20 transition-colors">
               <input
                 type="file"
                 id="med-files"
                 accept=".pdf,.jpg,.jpeg,.png"
                 multiple
-                onChange={handleFileChange}
+                onChange={handleMedicalFilesChange}
                 className="hidden"
               />
               <label htmlFor="med-files" className="cursor-pointer flex flex-col items-center gap-1">
-                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span className="text-xs font-semibold text-blue-800">Browse documents</span>
+                <span className="text-xs font-semibold text-teal-800">Browse Medical Certificate(s)</span>
                 <span className="text-[10px] text-gray-400">PDF, JPG, or PNG (up to 5 files, 10MB each)</span>
               </label>
             </div>
 
-            {/* Selected File List */}
-            {files.length > 0 && (
-              <div className="space-y-1.5 pt-2">
-                {files.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700">
-                    <span className="truncate max-w-[200px]">{f.name}</span>
+            {/* Selected Medical File List */}
+            {medicalFiles.length > 0 && (
+              <div className="space-y-1 pt-1">
+                {medicalFiles.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between bg-teal-50/50 border border-teal-200 rounded-lg px-3 py-1.5 text-xs text-gray-700">
+                    <span className="truncate max-w-[220px] font-medium text-teal-900">{f.name}</span>
                     <button
                       type="button"
-                      onClick={() => removeFile(i)}
-                      className="text-red-500 hover:text-red-700 text-xs font-semibold"
+                      onClick={() => removeMedicalFile(i)}
+                      className="text-red-500 hover:text-red-700 text-xs font-semibold cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Document Upload Section 2: Letter to the Dean */}
+          <div className="space-y-2 pt-2 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+                2. Upload Letter to the Dean <span className="text-red-500">*</span>
+              </label>
+              <span className="text-[10px] text-gray-400 font-medium">Formal Request Letter</span>
+            </div>
+            <div className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-xl p-3.5 text-center bg-indigo-50/20 transition-colors">
+              <input
+                type="file"
+                id="dean-letter-files"
+                accept=".pdf,.jpg,.jpeg,.png"
+                multiple
+                onChange={handleLetterFilesChange}
+                className="hidden"
+              />
+              <label htmlFor="dean-letter-files" className="cursor-pointer flex flex-col items-center gap-1">
+                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-semibold text-indigo-800">Browse Letter to the Dean</span>
+                <span className="text-[10px] text-gray-400">PDF, JPG, or PNG (up to 5 files, 10MB each)</span>
+              </label>
+            </div>
+
+            {/* Selected Letter File List */}
+            {letterFiles.length > 0 && (
+              <div className="space-y-1 pt-1">
+                {letterFiles.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between bg-indigo-50/50 border border-indigo-200 rounded-lg px-3 py-1.5 text-xs text-gray-700">
+                    <span className="truncate max-w-[220px] font-medium text-indigo-900">{f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeLetterFile(i)}
+                      className="text-red-500 hover:text-red-700 text-xs font-semibold cursor-pointer"
                     >
                       Remove
                     </button>

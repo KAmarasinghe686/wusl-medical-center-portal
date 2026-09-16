@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   const rawSubmissionType = cleanText(formData.get('submission_type'), 20)
   const submissionType = rawSubmissionType === 'exam' ? 'exam' : 'general'
   const issuerType = cleanText(formData.get('issuer_type'), 80) || null
+  const doctorName = cleanText(formData.get('doctor_name'), 120) || null
   const illnessTiming = cleanText(formData.get('illness_timing'), 30) || 'before_exam'
   const examAcademicYear = cleanText(formData.get('exam_academic_year'), 30) || null
   const examSemester = cleanText(formData.get('exam_semester'), 30) || null
@@ -60,20 +61,39 @@ export async function POST(request: Request) {
     }
   }
 
-  const files = formData.getAll('files').filter((value): value is File => value instanceof File)
+  const rawMedicalFiles = formData.getAll('medical_files').filter((value): value is File => value instanceof File)
+  const rawLetterFiles = formData.getAll('letter_files').filter((value): value is File => value instanceof File)
+  const fallbackFiles = formData.getAll('files').filter((value): value is File => value instanceof File)
+
+  const medicalFiles = rawMedicalFiles.length > 0 ? rawMedicalFiles : (fallbackFiles.length > 0 ? [fallbackFiles[0]] : [])
+  const letterFiles = rawLetterFiles.length > 0 ? rawLetterFiles : (fallbackFiles.length > 1 ? fallbackFiles.slice(1) : [])
 
   if (!purpose || !isIsoDate(issueDate) || !isPastOrToday(issueDate)) {
     return NextResponse.json({ error: 'A valid purpose and non-future issue date are required.' }, { status: 400 })
   }
+  if (!doctorName) {
+    return NextResponse.json({ error: 'Please specify the issuing doctor / medical practitioner name.' }, { status: 400 })
+  }
   if (!isValidDateRange(leaveStartDate, leaveEndDate)) {
     return NextResponse.json({ error: 'Leave start date must be on or before leave end date.' }, { status: 400 })
   }
-  if (files.length < 1 || files.length > MAX_MEDICAL_FILES) {
-    return NextResponse.json({ error: `Attach between 1 and ${MAX_MEDICAL_FILES} supporting documents.` }, { status: 400 })
+  if (medicalFiles.length < 1 || medicalFiles.length > MAX_MEDICAL_FILES) {
+    return NextResponse.json({ error: `Attach between 1 and ${MAX_MEDICAL_FILES} medical certificates.` }, { status: 400 })
   }
-  for (const file of files) {
+  if (rawLetterFiles.length === 0 && rawMedicalFiles.length > 0) {
+    return NextResponse.json({ error: 'Please attach the Letter to the Dean requesting absence consideration.' }, { status: 400 })
+  }
+  if (letterFiles.length > MAX_MEDICAL_FILES) {
+    return NextResponse.json({ error: `Attach up to ${MAX_MEDICAL_FILES} letter documents.` }, { status: 400 })
+  }
+
+  for (const file of medicalFiles) {
     const validationError = validateMedicalFile(file)
-    if (validationError) return NextResponse.json({ error: validationError }, { status: 400 })
+    if (validationError) return NextResponse.json({ error: `Medical Certificate: ${validationError}` }, { status: 400 })
+  }
+  for (const file of letterFiles) {
+    const validationError = validateMedicalFile(file)
+    if (validationError) return NextResponse.json({ error: `Letter to Dean: ${validationError}` }, { status: 400 })
   }
 
   const { serviceClient, user } = authorization
@@ -85,6 +105,25 @@ export async function POST(request: Request) {
 
   if (studentError || !student) {
     return NextResponse.json({ error: 'Student profile not found.' }, { status: 409 })
+  }
+
+  // Look up any matching advance notice from student
+  let advanceNoticeId: number | null = null
+  try {
+    const { data: matchedNotice } = await serviceClient
+      .from('advance_medical_notices')
+      .select('notice_id')
+      .eq('student_id', student.student_id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (matchedNotice) {
+      advanceNoticeId = matchedNotice.notice_id
+    }
+  } catch {
+    // advance_medical_notices table might not be initialized yet
   }
 
   const { data: record, error: recordError } = await serviceClient
@@ -103,15 +142,24 @@ export async function POST(request: Request) {
       submitted_by: 'student',
       submission_type: submissionType,
       issuer_type: issuerType,
+      doctor_name: doctorName,
       illness_timing: illnessTiming,
       exam_academic_year: examAcademicYear,
       exam_semester: examSemester,
       exam_degree_programme: examDegreeProgramme,
       exam_courses: examCourses,
       faculty_board_decision: 'Pending',
+      advance_notice_id: advanceNoticeId,
     })
     .select('record_id')
     .single()
+
+  if (advanceNoticeId) {
+    await serviceClient
+      .from('advance_medical_notices')
+      .update({ status: 'medical_submitted' })
+      .eq('notice_id', advanceNoticeId)
+  }
 
   if (recordError || !record) {
     return NextResponse.json({ error: recordError?.message || 'Unable to create the record.' }, { status: 400 })
@@ -121,8 +169,9 @@ export async function POST(request: Request) {
   let auditId: number | null = null
   let notificationIds: number[] = []
   try {
-    for (const file of files) {
-      const path = `${user.id}/${record.record_id}/${crypto.randomUUID()}-${safeFileName(file.name)}`
+    // 1. Upload Medical Certificates
+    for (const file of medicalFiles) {
+      const path = `${user.id}/${record.record_id}/med-cert-${crypto.randomUUID()}-${safeFileName(file.name)}`
       const { error: uploadError } = await serviceClient.storage
         .from('medical-documents')
         .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' })
@@ -134,8 +183,44 @@ export async function POST(request: Request) {
         file_path: path,
         file_type: file.type,
         file_size_kb: Math.max(1, Math.ceil(file.size / 1024)),
+        document_type: 'medical_certificate',
       })
-      if (metadataError) throw metadataError
+      if (metadataError) {
+        // Fallback without document_type if column is not yet in PostgREST cache
+        await serviceClient.from('record_images').insert({
+          record_id: record.record_id,
+          file_path: path,
+          file_type: file.type,
+          file_size_kb: Math.max(1, Math.ceil(file.size / 1024)),
+        })
+      }
+    }
+
+    // 2. Upload Letter to the Dean
+    for (const file of letterFiles) {
+      const path = `${user.id}/${record.record_id}/letter-dean-${crypto.randomUUID()}-${safeFileName(file.name)}`
+      const { error: uploadError } = await serviceClient.storage
+        .from('medical-documents')
+        .upload(path, file, { contentType: file.type, upsert: false, cacheControl: '3600' })
+      if (uploadError) throw uploadError
+      uploadedPaths.push(path)
+
+      const { error: metadataError } = await serviceClient.from('record_images').insert({
+        record_id: record.record_id,
+        file_path: path,
+        file_type: file.type,
+        file_size_kb: Math.max(1, Math.ceil(file.size / 1024)),
+        document_type: 'letter_to_dean',
+      })
+      if (metadataError) {
+        // Fallback without document_type if column is not yet in PostgREST cache
+        await serviceClient.from('record_images').insert({
+          record_id: record.record_id,
+          file_path: path,
+          file_type: file.type,
+          file_size_kb: Math.max(1, Math.ceil(file.size / 1024)),
+        })
+      }
     }
 
     const { data: audit, error: auditError } = await serviceClient

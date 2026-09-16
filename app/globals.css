@@ -363,8 +363,8 @@ body.app-body {
   color: var(--portal-muted) !important;
 }
 
-.portal-content div.bg-white,
-.portal-content section.bg-white {
+.portal-content div.bg-white:not(.print-doc-sheet):not(.flat-sheet),
+.portal-content section.bg-white:not(.print-doc-sheet):not(.flat-sheet) {
   border-color: var(--portal-line) !important;
   background: rgba(250, 252, 252, 0.88) !important;
   box-shadow: var(--portal-shadow-soft) !important;
@@ -419,31 +419,31 @@ body.app-body {
   border-radius: 0.65rem;
 }
 
-.portal-content table {
+.portal-content table:not(.print-table) {
   border-collapse: separate;
   border-spacing: 0;
 }
 
-.portal-content thead tr,
-.portal-content tr.bg-gray-50 {
+.portal-content table:not(.print-table) thead tr,
+.portal-content table:not(.print-table) tr.bg-gray-50 {
   background: rgba(229, 237, 239, 0.82) !important;
 }
 
-.portal-content th {
+.portal-content table:not(.print-table) th {
   color: #59606a !important;
   letter-spacing: 0.025em !important;
 }
 
 .portal-content td,
-.portal-content th {
+.portal-content table:not(.print-table) th {
   border-color: var(--portal-line-soft) !important;
 }
 
-.portal-content tbody tr {
+.portal-content table:not(.print-table) tbody tr {
   transition: background 150ms ease;
 }
 
-.portal-content tbody tr:hover {
+.portal-content table:not(.print-table) tbody tr:hover {
   background: rgba(44, 174, 171, 0.055) !important;
 }
 
@@ -1473,7 +1473,7 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
   border-radius: 0.58rem;
 }
 
-.app-body .portal-content table {
+.app-body .portal-content table:not(.print-table) {
   color: #293532;
   border-collapse: separate;
   border-spacing: 0;
@@ -1485,7 +1485,7 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
   background: #edf1ef !important;
 }
 
-.app-body .portal-content th {
+.app-body .portal-content table:not(.print-table) th {
   padding-block: 0.72rem !important;
   color: #53605d !important;
   border-bottom: 1px solid #d8dfdc !important;
@@ -1507,7 +1507,7 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
   border-bottom: 0 !important;
 }
 
-.app-body .portal-content tbody tr:hover {
+.app-body .portal-content table:not(.print-table) tbody tr:hover {
   background: #f2f7f4 !important;
 }
 
@@ -2019,8 +2019,8 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
 }
 
 /* Rounded white modules mirror the reference while keeping the portal data. */
-.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4),
-.app-body .portal-content > div:not(.fixed) section.bg-white {
+.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4):not(.print-doc-sheet):not(.flat-sheet),
+.app-body .portal-content > div:not(.fixed) section.bg-white:not(.print-doc-sheet):not(.flat-sheet) {
   border: 1px solid rgba(41, 61, 56, 0.09) !important;
   border-radius: 1rem !important;
   background: var(--shell-card) !important;
@@ -2291,7 +2291,7 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
     padding-inline: 0.9rem !important;
   }
 
-  .app-body .portal-content table {
+  .app-body .portal-content table:not(.print-table) {
     min-width: 42rem;
   }
 
@@ -3490,8 +3490,8 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
   letter-spacing: -0.035em;
 }
 
-.app-body .portal-content div.bg-white,
-.app-body .portal-content section.bg-white {
+.app-body .portal-content div.bg-white:not(.print-doc-sheet):not(.flat-sheet),
+.app-body .portal-content section.bg-white:not(.print-doc-sheet):not(.flat-sheet) {
   border-color: var(--portal-modern-border) !important;
   border-radius: 1rem !important;
   background: #fff !important;
@@ -3648,8 +3648,8 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
 }
 
 /* Internal sections sit quietly inside the main page surface. */
-.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4),
-.app-body .portal-content > div:not(.fixed) section.bg-white {
+.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4):not(.print-doc-sheet):not(.flat-sheet),
+.app-body .portal-content > div:not(.fixed) section.bg-white:not(.print-doc-sheet):not(.flat-sheet) {
   border-color: #e2e9e6 !important;
   border-radius: 0.9rem !important;
   background: #fbfcfc !important;
@@ -3910,8 +3910,8 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
 }
 
 /* Purpose-built surfaces instead of a card around the entire page. */
-.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4),
-.app-body .portal-content > div:not(.fixed) section.bg-white {
+.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4):not(.print-doc-sheet):not(.flat-sheet),
+.app-body .portal-content > div:not(.fixed) section.bg-white:not(.print-doc-sheet):not(.flat-sheet) {
   border: 1px solid #dfe7e3 !important;
   border-radius: 0.75rem !important;
   background: #fff !important;
@@ -4111,8 +4111,8 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
   box-shadow: none;
 }
 
-.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4),
-.app-body .portal-content > div:not(.fixed) section.bg-white {
+.app-body .portal-content > div:not(.fixed) div.bg-white:not(.border-l-4):not(.print-doc-sheet):not(.flat-sheet),
+.app-body .portal-content > div:not(.fixed) section.bg-white:not(.print-doc-sheet):not(.flat-sheet) {
   border-color: #dfe7e3 !important;
   border-radius: 0.7rem !important;
   background: #fff !important;
@@ -4131,4 +4131,160 @@ body > div.min-h-screen.items-center.justify-center button[style]:hover {
 
 .app-body .portal-content :is(button, a)[class*="rounded"]:not(.rounded-full) {
   border-radius: 0.48rem !important;
+}
+
+
+/* Flat Institutional Document Sheets (Zero rounded corners, zero shadow, zero outer border) */
+.flat-sheet,
+.print-doc-sheet {
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #ffffff !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.print-doc-sheet table.print-table,
+.flat-sheet table.print-table,
+table.print-table {
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+}
+
+.print-doc-sheet table.print-table th,
+.flat-sheet table.print-table th {
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  background: #f8fafc !important;
+}
+
+.print-doc-sheet table.print-table td,
+.flat-sheet table.print-table td {
+  color: #000000 !important;
+  border: 1px solid #000000 !important;
+  background: #ffffff !important;
+}
+
+.print-doc-sheet table.print-table tbody tr:hover,
+.flat-sheet table.print-table tbody tr:hover {
+  background: transparent !important;
+}
+
+/* --------------------------------------------------------------------------
+   Global A4 Print & PDF Formatting Rules
+   Ensures zero column clipping and pure flat document/table output
+   -------------------------------------------------------------------------- */
+@media print {
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  html, body, .app-body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 9pt !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .portal-sidebar,
+  .portal-header,
+  .portal-footer,
+  aside,
+  header,
+  footer,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  .portal-shell,
+  .portal-frame,
+  .portal-content,
+  .portal-content > div,
+  .app-body .portal-content,
+  .app-body .portal-content > div,
+  .app-body .portal-content > div:not(.fixed),
+  .app-body .portal-content > div:not(.fixed) div.bg-white,
+  .print-doc-sheet,
+  .flat-sheet {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-height: auto !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  .overflow-x-auto,
+  .overflow-hidden,
+  .overflow-auto {
+    overflow: visible !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  table.print-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  table.print-table th {
+    border: 1px solid #000000 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    vertical-align: middle !important;
+    padding: 5px 4px !important;
+    line-height: 1.2 !important;
+    font-size: 8.5pt !important;
+    background: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  table.print-table td {
+    border: 1px solid #000000 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    vertical-align: top !important;
+    padding: 5px 5px !important;
+    line-height: 1.3 !important;
+    font-size: 8.5pt !important;
+  }
+
+  table.print-table thead {
+    display: table-header-group !important;
+  }
+
+  table.print-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }

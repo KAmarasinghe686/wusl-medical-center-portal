@@ -264,9 +264,13 @@ function RecordDetail() {
                   {new Date(record.created_at).toLocaleDateString('en-GB')}
                 </div>
               </div>
-              <div className="col-span-2 sm:col-span-3">
+              <div>
                 <div className="text-[11px] text-gray-400 uppercase font-semibold">Issuing Medical Authority</div>
                 <div className="text-sm font-semibold text-gray-900 mt-0.5">{issuerLabel}</div>
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-400 uppercase font-semibold">Issuing Doctor</div>
+                <div className="text-sm font-semibold text-gray-900 mt-0.5">{record.doctor_name || 'Not specified'}</div>
               </div>
               <div>
                 <div className="text-[11px] text-gray-400 uppercase font-semibold">Duration of Leave</div>
@@ -328,37 +332,58 @@ function RecordDetail() {
             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 space-y-3">
               <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Attached Documents</h2>
               <div className="flex flex-col gap-2">
-                {images.map(img => (
-                  <div
-                    key={img.image_id}
-                    className="flex items-center justify-between border border-gray-200 rounded-xl px-3.5 py-2.5 bg-gray-50/70 hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5 truncate mr-2">
-                      <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                      <span className="text-xs font-medium text-gray-800 truncate">{img.file_path.split('/').pop()}</span>
-                      <span className="text-[10px] text-gray-400 font-mono">({img.file_size_kb} KB)</span>
+                {images.map(img => {
+                  const isLetter = img.document_type === 'letter_to_dean' || img.file_path.includes('letter-dean')
+                  const isCert = img.document_type === 'medical_certificate' || img.file_path.includes('med-cert') || (!isLetter && img.document_type !== 'resubmission_document')
+                  const fileName = img.file_path.split('/').pop()
+
+                  return (
+                    <div
+                      key={img.image_id}
+                      className="flex items-center justify-between border border-gray-200 rounded-xl px-3.5 py-2.5 bg-gray-50/70 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 truncate mr-2">
+                        <svg className="w-4 h-4 text-blue-800 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="text-xs font-medium text-gray-800 truncate">{fileName}</span>
+                          {isLetter ? (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full flex-shrink-0">
+                              Letter to Dean
+                            </span>
+                          ) : isCert ? (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-full flex-shrink-0">
+                              Medical Certificate
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded-full flex-shrink-0">
+                              Supporting Doc
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-mono">({img.file_size_kb} KB)</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={async () => {
+                            const { data } = await supabase.storage.from('medical-documents').createSignedUrl(img.file_path, 60)
+                            if (data?.signedUrl) window.open(data.signedUrl, '_blank')
+                          }}
+                          className="text-xs text-blue-800 hover:text-blue-900 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                        >
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownload(img.file_path)}
+                          className="text-xs text-gray-600 hover:text-gray-900 font-semibold px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                        >
+                          Download
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={async () => {
-                          const { data } = await supabase.storage.from('medical-documents').createSignedUrl(img.file_path, 60)
-                          if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-                        }}
-                        className="text-xs text-blue-800 hover:text-blue-900 font-semibold px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleDownload(img.file_path)}
-                        className="text-xs text-gray-600 hover:text-gray-900 font-semibold px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-                      >
-                        Download
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

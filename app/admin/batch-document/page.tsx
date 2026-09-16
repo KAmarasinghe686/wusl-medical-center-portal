@@ -364,8 +364,61 @@ function AdminBatchDocument() {
     window.print()
   }
 
+  const handleExportExcel = () => {
+    if (filteredItems.length === 0) {
+      alert('No records match the current filters to export.')
+      return
+    }
+
+    const headers = [
+      'No',
+      'Entry Type',
+      'Index No',
+      'Student Name',
+      'Duration / Period',
+      'Start Date',
+      'End Date',
+      'Leave Days',
+      'Holidays',
+      'Month Total Days',
+      'Exceeds 8-Day Cap',
+      'Remarks / Note',
+    ]
+
+    const rows = filteredItems.map((item, idx) => {
+      const monthTotal = monthlyStudentLeaveMap.get(`${item.indexNo}-${item.leaveMonth}`) || item.leaveDays
+      const exceedsCap = monthTotal > 8 ? 'YES (>8 Days)' : 'No'
+
+      return [
+        idx + 1,
+        item.itemType === 'certificate' ? 'Medical Certificate' : 'OPD Medical Visit',
+        item.indexNo,
+        `"${item.studentName.replace(/"/g, '""')}"`,
+        `"${item.durationStr.replace(/"/g, '""')}"`,
+        item.startDate,
+        item.endDate,
+        item.leaveDays,
+        item.holidays,
+        monthTotal,
+        exceedsCap,
+        `"${item.previousNote.replace(/"/g, '""')}"`,
+      ]
+    })
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `Batch_Medical_Attendance_Schedule_${selectedMonth === 'All' ? 'All_Months' : selectedMonth}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
       {/* Sleek Control Card - Hidden during printing */}
       <div className="print:hidden bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
         {/* Header Row: Title on Left, Grouped Action Buttons on Right */}
@@ -386,7 +439,7 @@ function AdminBatchDocument() {
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <button
               onClick={() => void fetchScheduleData()}
-              className="h-9 border border-gray-200 text-gray-700 hover:bg-gray-50 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+              className="h-9 border border-gray-200 text-gray-700 hover:bg-gray-50 px-3 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
               title="Refresh records"
             >
               <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -397,7 +450,7 @@ function AdminBatchDocument() {
             <button
               onClick={handleDispatchBatch}
               disabled={dispatching || filteredItems.length === 0}
-              className="h-9 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+              className="h-9 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -405,8 +458,19 @@ function AdminBatchDocument() {
               {dispatching ? 'Dispatching...' : 'Dispatch to 4 Departments'}
             </button>
             <button
+              onClick={handleExportExcel}
+              disabled={filteredItems.length === 0}
+              className="h-9 bg-emerald-800 hover:bg-emerald-900 disabled:opacity-50 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              title="Download schedule in Excel / CSV format"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export Excel
+            </button>
+            <button
               onClick={handlePrint}
-              className="h-9 bg-blue-800 hover:bg-blue-900 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+              className="h-9 bg-blue-800 hover:bg-blue-900 text-white px-3.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -544,19 +608,22 @@ function AdminBatchDocument() {
       )}
 
       {/* DOCUMENT SHEET (Matches Physical University Document Format) */}
-      <div className="bg-white p-6 sm:p-10 border border-gray-200 rounded-2xl shadow-sm print:p-0 print:border-none print:shadow-none print:m-0">
+      <div className="bg-white p-6 sm:p-8 rounded-none border-0 shadow-none print:p-0 print:m-0 print-doc-sheet">
         <style>{`
           @media print {
-            body { background: white !important; font-size: 11pt !important; color: black !important; }
+            body { background: white !important; font-size: 9pt !important; color: black !important; }
             .portal-sidebar, .portal-header, .portal-footer, aside, header, footer { display: none !important; }
             .portal-shell, .portal-frame, .portal-content { margin: 0 !important; padding: 0 !important; }
-            @page { size: A4 portrait; margin: 15mm 12mm 15mm 12mm; }
+            .print-doc-sheet, .print-doc-sheet * { box-shadow: none !important; border-radius: 0 !important; }
+            .print-doc-sheet { border: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; background: transparent !important; }
+            @page { size: A4 landscape; margin: 8mm 8mm 8mm 8mm; }
+            .print-table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
             .print-table th, .print-table td { border: 1px solid black !important; }
           }
         `}</style>
 
         {/* Document Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-5">
           <h2 className="text-base sm:text-lg font-bold tracking-wide text-gray-900 uppercase">
             DETAILS OF STUDENTS MEDICAL CERTIFICATE
           </h2>
@@ -576,14 +643,22 @@ function AdminBatchDocument() {
         {/* Tabular Schedule */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse border border-gray-900 text-xs text-left print-table">
+            <colgroup>
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '37%' }} />
+            </colgroup>
             <thead>
-              <tr className="bg-gray-50 print:bg-transparent font-bold text-gray-900 border-b border-gray-900">
-                <th className="border border-gray-900 px-2.5 py-2 w-12 text-center">SR NO</th>
-                <th className="border border-gray-900 px-3 py-2 w-1/4">NAME AND REGISTRATION NUMBER</th>
-                <th className="border border-gray-900 px-3 py-2 w-1/4 text-center">DURATION OF LEAVE</th>
-                <th className="border border-gray-900 px-2.5 py-2 w-20 text-center">NUMBER OF HOLIDAYS</th>
-                <th className="border border-gray-900 px-2.5 py-2 w-20 text-center">NUMBER OF LEAVE DYS</th>
-                <th className="border border-gray-900 px-3 py-2">
+              <tr className="bg-gray-50 print:bg-transparent font-bold text-gray-900 border-b border-gray-900 text-center">
+                <th className="border border-gray-900 px-1.5 py-2 text-center" style={{ width: '5%' }}>SR NO</th>
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '24%' }}>NAME AND REGISTRATION NUMBER</th>
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '18%' }}>DURATION OF LEAVE</th>
+                <th className="border border-gray-900 px-1.5 py-2 text-center" style={{ width: '8%' }}>NUMBER OF HOLIDAYS</th>
+                <th className="border border-gray-900 px-1.5 py-2 text-center" style={{ width: '8%' }}>NUMBER OF LEAVE DYS</th>
+                <th className="border border-gray-900 px-2 py-2 text-center" style={{ width: '37%' }}>
                   DETAILS OF TAKEN PREVIOUS (THOSE WHO HAVE CEDED 08 DAYS LEAVE PER MONTHLY)
                 </th>
               </tr>
@@ -610,33 +685,33 @@ function AdminBatchDocument() {
                   return (
                     <tr key={item.id} className="border-b border-gray-900 align-top">
                       {/* SR NO */}
-                      <td className="border border-gray-900 px-2.5 py-2.5 text-center font-medium">
+                      <td className="border border-gray-900 px-1.5 py-2 text-center font-medium">
                         {String(index + 1).padStart(2, '0')}
                       </td>
 
                       {/* NAME AND REGISTRATION NUMBER */}
-                      <td className="border border-gray-900 px-3 py-2.5">
+                      <td className="border border-gray-900 px-2 py-2">
                         <div className="font-semibold text-gray-900">{item.studentName}</div>
                         <div className="text-gray-700 font-mono mt-0.5">{item.indexNo}</div>
                       </td>
 
                       {/* DURATION OF LEAVE */}
-                      <td className="border border-gray-900 px-3 py-2.5 text-center font-mono text-[11px] whitespace-pre-line">
+                      <td className="border border-gray-900 px-2 py-2 text-center font-mono text-[11px] whitespace-pre-line">
                         {item.durationStr}
                       </td>
 
                       {/* NUMBER OF HOLIDAYS */}
-                      <td className="border border-gray-900 px-2.5 py-2.5 text-center font-medium">
+                      <td className="border border-gray-900 px-1.5 py-2 text-center font-medium">
                         {item.holidays > 0 ? String(item.holidays).padStart(2, '0') : ''}
                       </td>
 
                       {/* NUMBER OF LEAVE DYS */}
-                      <td className="border border-gray-900 px-2.5 py-2.5 text-center font-medium">
+                      <td className="border border-gray-900 px-1.5 py-2 text-center font-medium">
                         {String(item.leaveDays).padStart(2, '0')}
                       </td>
 
                       {/* DETAILS OF TAKEN PREVIOUS */}
-                      <td className="border border-gray-900 px-3 py-2.5 text-[11px] text-gray-800">
+                      <td className="border border-gray-900 px-2 py-2 text-[11px] text-gray-800">
                         {hasExceeded8Days ? (
                           <div className="font-semibold text-amber-800 print:text-black">
                             Exceeded 8 days ({totalDaysInMonth} days total in {item.leaveMonth})
@@ -656,7 +731,7 @@ function AdminBatchDocument() {
         </div>
 
         {/* Document Footer (Official Medical Officer Stamp Block) */}
-        <div className="mt-12 flex justify-end">
+        <div className="mt-8 flex justify-end print-avoid-break">
           <div className="text-center w-72 border-t-2 border-gray-800 pt-2 print:border-gray-900">
             <div className="font-bold text-xs uppercase text-gray-900">Medical Officer</div>
             <div className="text-xs text-gray-700">Wayamba University of Sri Lanka</div>

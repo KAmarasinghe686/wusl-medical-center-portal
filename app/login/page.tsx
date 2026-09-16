@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserSupabaseClient } from '../lib/supabase/browser'
 import styles from './login.module.css'
 
-const ROLES = ['Student', 'Staff', 'Doctor', 'Faculty', 'Admin']
+const ROLES = ['Student', 'Staff', 'Doctor', 'Faculty', 'Dean', 'Admin']
 const supabase = createBrowserSupabaseClient()
 
 export default function LoginPage() {
@@ -81,11 +81,19 @@ export default function LoginPage() {
     const canAccessStaff = selectedRoleNormalized === 'worker' && (
       profile.role === 'worker' || (profile.role === 'admin' && Boolean(profile.employee_index))
     )
+    const canAccessDean = selectedRoleNormalized === 'dean' && (
+      profile.role === 'dean' || data.user.email === 'dean@wusl.ac.lk' || data.user.user_metadata?.role === 'dean'
+    )
 
-    if (profile.role !== selectedRoleNormalized && !canAccessStaff) {
+    if (profile.role !== selectedRoleNormalized && !canAccessStaff && !canAccessDean) {
       setError('Invalid role selected. Please select the correct role.')
       await supabase.auth.signOut()
       setLoading(false)
+      return
+    }
+
+    if (selectedRoleNormalized === 'dean' || profile.role === 'dean') {
+      router.push('/dean/dashboard')
       return
     }
 
@@ -94,6 +102,7 @@ export default function LoginPage() {
       worker: '/worker/dashboard',
       doctor: '/doctor/dashboard',
       faculty: '/faculty/dashboard',
+      dean: '/dean/dashboard',
       admin: '/admin/dashboard',
     }
     router.push(selectedRoleNormalized === 'worker' ? '/worker/dashboard' : roleMap[profile.role])
@@ -140,6 +149,7 @@ export default function LoginPage() {
                 <div>• student@wusl.ac.lk</div>
                 <div>• doctor@wusl.ac.lk</div>
                 <div>• faculty@wusl.ac.lk</div>
+                <div>• dean@wusl.ac.lk</div>
                 <div>• admin@wusl.ac.lk</div>
                 <div>• staff@wusl.ac.lk</div>
               </div>

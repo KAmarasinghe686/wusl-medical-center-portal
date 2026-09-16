@@ -6,13 +6,14 @@ import { createBrowserSupabaseClient } from '../../lib/supabase/browser'
 const supabase = createBrowserSupabaseClient()
 
 const PER_PAGE = 10
-const EDIT_ROLES = ['student', 'doctor', 'worker', 'faculty', 'admin']
+const EDIT_ROLES = ['student', 'doctor', 'worker', 'faculty', 'dean', 'admin']
 
 type ManagedUser = {
   id: string
   email: string
   full_name: string | null
   role: string
+  faculty_sub_role?: 'full_access' | 'coursework_staff' | 'exam_staff' | null
   employee_index: string | null
   is_active: boolean
   status_reason: string | null
@@ -28,15 +29,28 @@ async function adminRequest(init: RequestInit = {}) {
   return fetch('/api/admin/users', { ...init, headers, cache: 'no-store' })
 }
 
-function RoleBadge({ role }: { role: string }) {
+function RoleBadge({ role, subRole }: { role: string; subRole?: string | null }) {
   const styles: Record<string, string> = {
     student: 'bg-blue-50 text-blue-700 border border-blue-200',
     doctor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
     worker: 'bg-amber-50 text-amber-700 border border-amber-200',
     faculty: 'bg-violet-50 text-violet-700 border border-violet-200',
+    dean: 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold',
     admin: 'bg-red-50 text-red-700 border border-red-200',
   }
-  return <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${styles[role] || 'bg-gray-100 text-gray-700'}`}>{role === 'worker' ? 'staff' : role}</span>
+  const label = role === 'worker' ? 'staff' : role
+  const subLabel =
+    role === 'faculty' && subRole === 'coursework_staff'
+      ? ' (Coursework)'
+      : role === 'faculty' && subRole === 'exam_staff'
+      ? ' (Exams)'
+      : ''
+
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${styles[role] || 'bg-gray-100 text-gray-700'}`}>
+      {label}{subLabel}
+    </span>
+  )
 }
 
 function StatusBadge({ active }: { active: boolean }) {
@@ -61,7 +75,7 @@ export default function ManageUsers() {
   const [statusReason, setStatusReason] = useState('')
   const [statusSaving, setStatusSaving] = useState(false)
   const [statusError, setStatusError] = useState('')
-  const [form, setForm] = useState({ email: '' })
+  const [form, setForm] = useState({ email: '', faculty_sub_role: 'full_access' })
   const [saving, setSaving] = useState(false)
   const [editError, setEditError] = useState('')
   const [addForm, setAddForm] = useState({
@@ -144,16 +158,36 @@ export default function ManageUsers() {
     try {
       if (!editUser) return
 
-      const response = await adminRequest({
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editUser.id, action: 'update-email', email: form.email }),
-      })
-      const result = await response.json()
-      if (!response.ok) {
-        setEditError(result.error || 'Unable to save this user.')
-        return
+      if (form.email !== editUser.email) {
+        const response = await adminRequest({
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editUser.id, action: 'update-email', email: form.email }),
+        })
+        const result = await response.json()
+        if (!response.ok) {
+          setEditError(result.error || 'Unable to update email.')
+          return
+        }
       }
+
+      if (editUser.role === 'faculty') {
+        const subRoleResponse = await adminRequest({
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editUser.id,
+            action: 'update-faculty-subrole',
+            faculty_sub_role: form.faculty_sub_role,
+          }),
+        })
+        const subRoleResult = await subRoleResponse.json()
+        if (!subRoleResponse.ok) {
+          setEditError(subRoleResult.error || 'Unable to update faculty desk assignment.')
+          return
+        }
+      }
+
       setEditUser(null)
       setRefreshKey(current => current + 1)
     } catch (error) {
@@ -379,9 +413,27 @@ export default function ManageUsers() {
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Role</span>
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
-                  <RoleBadge role={editUser.role} />
+                  <RoleBadge role={editUser.role} subRole={editUser.faculty_sub_role} />
                 </div>
               </div>
+
+              {editUser.role === 'faculty' && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Faculty Desk Assignment
+                  </label>
+                  <select
+                    value={form.faculty_sub_role}
+                    onChange={e => setForm({ ...form, faculty_sub_role: e.target.value as 'full_access' | 'coursework_staff' | 'exam_staff' })}
+                    className={modalInputClass + ' bg-white'}
+                  >
+                    <option value="full_access">Full Access (Senior Officer / AR / Dean - Both Desks)</option>
+                    <option value="coursework_staff">Coursework & Attendance Staff</option>
+                    <option value="exam_staff">Faculty Examination Branch Staff</option>
+                  </select>
+                </div>
+              )}
+
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                   {editUser.role === 'student' ? 'Student Index' : 'Employee Index'}
@@ -398,7 +450,7 @@ export default function ManageUsers() {
               <div className="flex gap-3 mt-2">
                 <button onClick={handleSave} disabled={saving}
                   className="flex-1 bg-blue-800 hover:bg-blue-900 text-white py-2.5 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
-                  {saving ? 'Updating...' : 'Update Login Email'}
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button onClick={() => {
                   setEditUser(null)
@@ -454,7 +506,7 @@ export default function ManageUsers() {
                 <tr key={u.id} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                   <td className="py-3 px-5 text-xs font-medium text-gray-800">{u.full_name || 'N/A'}</td>
                   <td className="py-3 px-5 text-xs text-gray-500">{u.email || 'N/A'}</td>
-                  <td className="py-3 px-5"><RoleBadge role={u.role} /></td>
+                  <td className="py-3 px-5"><RoleBadge role={u.role} subRole={u.faculty_sub_role} /></td>
                   <td className="py-3 px-5"><StatusBadge active={u.is_active !== false} /></td>
                   <td className="py-3 px-5">
                     <div className="flex gap-2">
@@ -463,6 +515,7 @@ export default function ManageUsers() {
                         setEditError('')
                         setForm({
                           email: u.email,
+                          faculty_sub_role: u.faculty_sub_role || 'full_access',
                         })
                       }}
                         className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 hover:bg-blue-800 hover:text-white hover:border-blue-800 transition-colors">

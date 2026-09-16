@@ -10,9 +10,10 @@ const supabase = createBrowserSupabaseClient()
 
 const navLinks = [
   { label: 'Dashboard', href: '/student/dashboard' },
+  { label: 'Inform Dean (Early Notice)', href: '/student/inform-dean' },
+  { label: 'Submit Medical Record', href: '/student/submit' },
   { label: 'My Records', href: '/student/recordss' },
   { label: 'My Visits', href: '/student/visits' },
-  { label: 'Submit Medical Record', href: '/student/submit' },
   { label: 'Notifications', href: '/student/nortifications' },
   { label: 'Profile', href: '/student/profile' },
   { label: 'Doctor Availability', href: '/student/availability' },

@@ -412,7 +412,7 @@
 
 .roleList {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 0.28rem;
   padding: 0.28rem;
   border: 1px solid #dce4e2;
@@ -422,7 +422,7 @@
 
 .roleButton {
   min-height: 2.3rem;
-  padding: 0.45rem 0.3rem;
+  padding: 0.45rem 0.15rem;
   color: #66716f;
   border: 0;
   border-radius: 0.48rem;
@@ -757,7 +757,7 @@
 
 }
 
-@media (max-width: 520px) {
+@media (max-width: 580px) {
   .formPanel {
     padding-top: 0;
   }
